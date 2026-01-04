@@ -1,0 +1,4 @@
+project_id = "xashnfhwqdwrqdeftufc"
+
+[functions.convert-to-3d]
+verify_jwt = true
