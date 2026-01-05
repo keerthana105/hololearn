@@ -45,30 +45,41 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a 3D depth estimation and educational AI. Analyze the provided 2D image and generate depth map data for 3D reconstruction, along with educational feature annotations.
-            
-            Return a JSON object with:
-            - "depthGrid": A 32x32 array of depth values (0.0 to 1.0, where 0 is closest and 1 is farthest)
-            - "objectType": A description of the main object/scene (e.g., "Human Brain", "Heart", "Cell")
-            - "suggestedMaterials": Array of material suggestions for 3D rendering
-            - "lighting": Object with ambient and directional light suggestions
-            - "scale": Suggested scale factor for the 3D model
-            - "features": Array of feature annotations with:
-              - "id": Unique identifier string
-              - "name": Name of the feature/part (e.g., "Frontal Lobe", "Left Ventricle")
-              - "description": Educational description of this part (2-3 sentences explaining function/importance)
-              - "position": {x, y} normalized coordinates (0-1) indicating where this feature is located on the image
-              - "color": Hex color for the hotspot marker
-            
-            Focus on identifying 3-6 key educational features/parts of the subject. For anatomical subjects, identify major structures. For objects, identify key components.
-            Be creative but realistic in your depth estimation based on visual cues.`
+            content: `You are an expert 3D depth estimation AI specialized in anatomical and scientific imagery. Your task is to create ACCURATE depth maps that capture the TRUE 3D structure of objects.
+
+CRITICAL DEPTH MAPPING RULES:
+- For anatomical images (brain, heart, organs): The CENTER should be CLOSEST (depth 0.0-0.3), edges should be FARTHEST (0.7-1.0)
+- Create smooth, organic depth gradients that follow the natural contours
+- For brain scans: The cortex bulges outward, sulci (grooves) go inward, ventricles are deeper cavities
+- For MRI/CT cross-sections: Interpret the brightness as structure - lighter areas often indicate density
+- The depth grid should create a DOME or CURVED surface, NOT a flat plane
+
+Return a JSON object with:
+- "depthGrid": A 64x64 array of depth values (0.0 to 1.0). CREATE SMOOTH GRADIENTS:
+  * For round objects: Use radial gradients from center (0.0) to edges (1.0)
+  * For anatomical structures: Follow the natural 3D curvature
+  * Add subtle variations for surface details (bumps, grooves, folds)
+  * Brain example: frontal areas slightly forward, temporal lobes curve back
+- "objectType": Specific description (e.g., "Axial Brain MRI Scan", "Human Heart Cross-Section")
+- "suggestedMaterials": ["organic", "subsurface"] for biological, ["metallic", "rough"] for objects
+- "lighting": { "ambient": 0.5, "directional": { "intensity": 1.0, "position": [3, 5, 3] } }
+- "scale": 1.5 for prominent 3D effect
+- "depthMultiplier": 2.0 to 4.0 (higher = more 3D extrusion)
+- "features": Array with 4-6 features:
+  - "id": Unique string
+  - "name": Anatomical/component name
+  - "description": 2-3 sentence educational explanation
+  - "position": {x, y} normalized 0-1 coordinates on the image
+  - "color": Hex color for marker
+
+Generate depth values that will create a realistic 3D surface when extruded. The model should look like the actual 3D shape of the object, not a flat plane.`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Analyze this image and generate depth map data for 3D reconstruction with educational feature annotations. Return only valid JSON."
+                text: "Analyze this image carefully. Generate a 64x64 depth grid that captures the TRUE 3D shape - for a brain, make it dome-shaped with the cortex bulging out. Include educational feature annotations. Return only valid JSON, no markdown."
               },
               {
                 type: "image_url",
@@ -175,16 +186,31 @@ serve(async (req) => {
 
 function generateDepthGrid(): number[][] {
   const grid: number[][] = [];
-  for (let i = 0; i < 32; i++) {
+  const size = 64;
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const maxRadius = size / 2;
+  
+  for (let i = 0; i < size; i++) {
     const row: number[] = [];
-    for (let j = 0; j < 32; j++) {
-      // Create a bowl-like depth pattern
-      const centerX = 16;
-      const centerY = 16;
-      const distance = Math.sqrt(Math.pow(i - centerX, 2) + Math.pow(j - centerY, 2));
-      const normalizedDistance = distance / 22;
-      const depth = Math.min(1, Math.max(0, 0.3 + normalizedDistance * 0.5 + Math.random() * 0.1));
-      row.push(parseFloat(depth.toFixed(3)));
+    for (let j = 0; j < size; j++) {
+      // Create a dome-like depth pattern (center is closest)
+      const dx = (j - centerX) / maxRadius;
+      const dy = (i - centerY) / maxRadius;
+      const distanceSquared = dx * dx + dy * dy;
+      
+      if (distanceSquared > 1) {
+        // Outside the dome - far away
+        row.push(1.0);
+      } else {
+        // Inside the dome - use hemisphere formula
+        const height = Math.sqrt(1 - distanceSquared);
+        // Invert so center (height=1) becomes depth=0 (closest)
+        const depth = 1 - height;
+        // Add subtle noise for organic feel
+        const noise = (Math.random() - 0.5) * 0.05;
+        row.push(parseFloat(Math.max(0, Math.min(1, depth + noise)).toFixed(3)));
+      }
     }
     grid.push(row);
   }
@@ -195,11 +221,12 @@ function generateSyntheticDepthData() {
   return {
     depthGrid: generateDepthGrid(),
     objectType: "3D Object",
-    suggestedMaterials: ["standard", "metallic"],
+    suggestedMaterials: ["organic", "subsurface"],
     lighting: {
-      ambient: 0.4,
-      directional: { intensity: 0.8, position: [5, 5, 5] }
+      ambient: 0.5,
+      directional: { intensity: 1.0, position: [3, 5, 3] }
     },
-    scale: 1.0
+    scale: 1.5,
+    depthMultiplier: 2.5
   };
 }
