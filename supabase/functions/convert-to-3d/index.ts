@@ -45,23 +45,30 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a 3D depth estimation AI. Analyze the provided 2D image and generate depth map data for 3D reconstruction.
+            content: `You are a 3D depth estimation and educational AI. Analyze the provided 2D image and generate depth map data for 3D reconstruction, along with educational feature annotations.
             
             Return a JSON object with:
             - "depthGrid": A 32x32 array of depth values (0.0 to 1.0, where 0 is closest and 1 is farthest)
-            - "objectType": A description of the main object/scene
+            - "objectType": A description of the main object/scene (e.g., "Human Brain", "Heart", "Cell")
             - "suggestedMaterials": Array of material suggestions for 3D rendering
             - "lighting": Object with ambient and directional light suggestions
             - "scale": Suggested scale factor for the 3D model
+            - "features": Array of feature annotations with:
+              - "id": Unique identifier string
+              - "name": Name of the feature/part (e.g., "Frontal Lobe", "Left Ventricle")
+              - "description": Educational description of this part (2-3 sentences explaining function/importance)
+              - "position": {x, y} normalized coordinates (0-1) indicating where this feature is located on the image
+              - "color": Hex color for the hotspot marker
             
-            Be creative but realistic in your depth estimation based on visual cues like shadows, perspective, and object relationships.`
+            Focus on identifying 3-6 key educational features/parts of the subject. For anatomical subjects, identify major structures. For objects, identify key components.
+            Be creative but realistic in your depth estimation based on visual cues.`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Analyze this image and generate depth map data for 3D reconstruction. Return only valid JSON."
+                text: "Analyze this image and generate depth map data for 3D reconstruction with educational feature annotations. Return only valid JSON."
               },
               {
                 type: "image_url",
