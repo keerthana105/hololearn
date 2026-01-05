@@ -15,11 +15,21 @@ import {
   FileImage,
   Box,
   X,
-  CheckCircle
+  CheckCircle,
+  Wand2
 } from "lucide-react";
 import { exportToOBJ, exportToSTL, exportToGLTF, downloadFile } from "@/lib/exportUtils";
+import { removeBackground, loadImage } from "@/lib/backgroundRemoval";
 
-type ConversionStatus = "idle" | "uploading" | "processing" | "completed" | "failed";
+type ConversionStatus = "idle" | "uploading" | "removing-bg" | "processing" | "completed" | "failed";
+
+interface Feature {
+  id: string;
+  name: string;
+  description: string;
+  position: { x: number; y: number };
+  color: string;
+}
 
 interface ModelData {
   depthGrid: number[][];
@@ -30,6 +40,7 @@ interface ModelData {
     directional?: { intensity: number; position: number[] };
   };
   scale?: number;
+  features?: Feature[];
 }
 
 export default function Convert() {
@@ -43,6 +54,8 @@ export default function Convert() {
   const [status, setStatus] = useState<ConversionStatus>("idle");
   const [modelData, setModelData] = useState<ModelData | null>(null);
   const [conversionId, setConversionId] = useState<string | null>(null);
+  const [bgRemovalProgress, setBgRemovalProgress] = useState<string>("");
+  const [processedFile, setProcessedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -103,6 +116,38 @@ export default function Convert() {
     setStatus("idle");
     setModelData(null);
     setConversionId(null);
+    setProcessedFile(null);
+    setBgRemovalProgress("");
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!file) return;
+    
+    try {
+      setStatus("removing-bg");
+      setBgRemovalProgress("Loading AI model...");
+      
+      const img = await loadImage(file);
+      const resultBlob = await removeBackground(img, setBgRemovalProgress);
+      
+      const processedFileObj = new File([resultBlob], `${title || "processed"}.png`, { type: "image/png" });
+      setProcessedFile(processedFileObj);
+      setPreview(URL.createObjectURL(resultBlob));
+      setStatus("idle");
+      
+      toast({
+        title: "Background Removed",
+        description: "Your image is ready for 3D conversion.",
+      });
+    } catch (error) {
+      console.error("Background removal failed:", error);
+      setStatus("idle");
+      toast({
+        title: "Background Removal Failed",
+        description: "Proceeding with original image. The AI will try to focus on the main subject.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleConvert = async () => {
@@ -111,13 +156,14 @@ export default function Convert() {
     try {
       setStatus("uploading");
 
-      // Upload file to storage
-      const fileExt = file.name.split(".").pop();
+      // Use processed file if available, otherwise use original
+      const fileToUpload = processedFile || file;
+      const fileExt = processedFile ? "png" : file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from("uploads")
-        .upload(fileName, file);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) {
         throw new Error(`Upload failed: ${uploadError.message}`);
@@ -299,8 +345,54 @@ export default function Convert() {
                 </div>
               )}
 
+              {/* Background Removal Button */}
+              {file && status === "idle" && !processedFile && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleRemoveBackground}
+                >
+                  <Wand2 className="w-5 h-5 mr-2" />
+                  Remove Background (Recommended)
+                </Button>
+              )}
+
+              {/* Background Removal Status */}
+              {status === "removing-bg" && (
+                <div className="card-glass rounded-xl p-4 animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <Wand2 className="w-5 h-5 text-purple-500 animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Removing background...</p>
+                      <p className="text-sm text-muted-foreground">
+                        {bgRemovalProgress || "Preparing AI model..."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Background Removed Success */}
+              {processedFile && status === "idle" && (
+                <div className="card-glass rounded-xl p-4 animate-fade-in border-purple-500/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-purple-500">Background Removed!</p>
+                      <p className="text-sm text-muted-foreground">
+                        Ready for clearer 3D conversion
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Convert Button */}
-              {file && status !== "completed" && (
+              {file && status !== "completed" && status !== "removing-bg" && (
                 <Button
                   variant="hero"
                   size="xl"
@@ -337,7 +429,7 @@ export default function Convert() {
                     <div>
                       <p className="font-medium">Processing your image...</p>
                       <p className="text-sm text-muted-foreground">
-                        Our AI is analyzing depth and geometry
+                        Our AI is analyzing depth, geometry and features
                       </p>
                     </div>
                   </div>
