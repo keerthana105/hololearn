@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Sparkles, 
   Upload, 
@@ -10,10 +12,49 @@ import {
   Shield, 
   Cpu,
   ArrowRight,
-  Play
+  Play,
+  CheckCircle,
+  Image,
+  Wand2,
+  Eye,
+  MousePointer
 } from "lucide-react";
 
 export default function Index() {
+  const [showDemo, setShowDemo] = useState(false);
+
+  const demoSteps = [
+    {
+      step: 1,
+      icon: Upload,
+      title: "Upload Your Image",
+      description: "Start by uploading any 2D image - medical scans (MRI, CT), anatomical diagrams, biology images, or even regular photographs. Supported formats: JPG, PNG, WebP up to 10MB."
+    },
+    {
+      step: 2,
+      icon: Wand2,
+      title: "Optional: Remove Background",
+      description: "For cleaner 3D results, use our AI-powered background removal. This isolates the main subject and helps the depth estimation focus on what matters."
+    },
+    {
+      step: 3,
+      icon: Cpu,
+      title: "AI Depth Analysis",
+      description: "Our Google Gemini 2.5 Pro AI analyzes your image to create a 128×128 depth grid. It identifies anatomical structures, surface topology, and generates educational feature annotations."
+    },
+    {
+      step: 4,
+      icon: Eye,
+      title: "Interactive 3D Viewing",
+      description: "Explore your generated 3D model in real-time! Rotate, zoom, and pan around the model. Click on glowing hotspots to learn about each identified feature."
+    },
+    {
+      step: 5,
+      icon: Download,
+      title: "Export Your Model",
+      description: "Download your 3D model in OBJ (universal), GLTF (web/AR/VR optimized), or STL (3D printing) format for use in other applications."
+    }
+  ];
   const features = [
     {
       icon: Upload,
@@ -90,10 +131,58 @@ export default function Index() {
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Button variant="glass" size="xl" className="gap-2">
-                <Play className="w-5 h-5" />
-                Watch Demo
-              </Button>
+              <Dialog open={showDemo} onOpenChange={setShowDemo}>
+                <DialogTrigger asChild>
+                  <Button variant="glass" size="xl" className="gap-2">
+                    <Play className="w-5 h-5" />
+                    Watch Demo
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-display flex items-center gap-2">
+                      <Sparkles className="w-6 h-6 text-primary" />
+                      How HoloLearn Works
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-6 space-y-6">
+                    {demoSteps.map((step, index) => (
+                      <div 
+                        key={step.step} 
+                        className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors"
+                      >
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                            <step.icon className="w-6 h-6 text-primary" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                              STEP {step.step}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
+                          <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
+                        </div>
+                        {index < demoSteps.length - 1 && (
+                          <div className="hidden md:flex items-center">
+                            <ArrowRight className="w-5 h-5 text-muted-foreground/50" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <div className="pt-4 flex justify-center">
+                      <Link to="/convert" onClick={() => setShowDemo(false)}>
+                        <Button variant="hero" size="lg" className="gap-2">
+                          <MousePointer className="w-5 h-5" />
+                          Try It Now
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Stats */}
