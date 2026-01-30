@@ -1071,6 +1071,216 @@ hololearn/
 
 ---
 
-**Document Version:** 1.0  
+## Appendix C: Running HoloLearn in Visual Studio Code
+
+### C.1 Prerequisites
+
+Before running the project, ensure you have the following installed:
+
+| Software | Minimum Version | Download Link |
+|----------|-----------------|---------------|
+| **Node.js** | v18.0.0 or higher | https://nodejs.org/ |
+| **npm** | v9.0.0 or higher | Comes with Node.js |
+| **Visual Studio Code** | Latest | https://code.visualstudio.com/ |
+| **Git** | Latest | https://git-scm.com/ |
+
+### C.2 Step-by-Step Setup Instructions
+
+#### Step 1: Clone or Download the Project
+
+**Option A: Using Git (Recommended)**
+```bash
+# Open terminal and navigate to your desired folder
+cd Documents/Projects
+
+# Clone the repository
+git clone <repository-url> hololearn
+cd hololearn
+```
+
+**Option B: Download ZIP**
+1. Download the project as a ZIP file
+2. Extract to your desired location
+3. Open the extracted folder
+
+#### Step 2: Open in Visual Studio Code
+
+1. Launch Visual Studio Code
+2. Go to **File → Open Folder** (or `Ctrl+K Ctrl+O` on Windows/Linux, `Cmd+K Cmd+O` on Mac)
+3. Navigate to and select the `hololearn` folder
+4. Click **Select Folder**
+
+#### Step 3: Install Recommended VS Code Extensions
+
+When you open the project, VS Code may prompt you to install recommended extensions. Install these:
+
+| Extension | Purpose |
+|-----------|---------|
+| **ES7+ React/Redux Snippets** | React code snippets |
+| **Tailwind CSS IntelliSense** | Tailwind class autocomplete |
+| **TypeScript Vue Plugin (Volar)** | TypeScript support |
+| **Prettier - Code Formatter** | Code formatting |
+| **ESLint** | JavaScript/TypeScript linting |
+| **GitLens** | Git integration |
+
+#### Step 4: Install Dependencies
+
+Open the integrated terminal in VS Code:
+- **Windows/Linux:** `Ctrl + \`` (backtick)
+- **Mac:** `Cmd + \`` (backtick)
+
+Run the following command:
+```bash
+npm install
+```
+
+This will install all required packages from `package.json`. Wait for the installation to complete (may take 2-3 minutes).
+
+#### Step 5: Configure Environment Variables
+
+The project uses environment variables stored in the `.env` file. This file should already exist with the following:
+
+```env
+VITE_SUPABASE_PROJECT_ID="xashnfhwqdwrqdeftufc"
+VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+VITE_SUPABASE_URL="https://xashnfhwqdwrqdeftufc.supabase.co"
+```
+
+**Note:** These are public keys safe to include in the frontend. The backend secrets are managed by Lovable Cloud.
+
+#### Step 6: Start the Development Server
+
+Run the following command in the terminal:
+```bash
+npm run dev
+```
+
+You should see output like:
+```
+  VITE v5.x.x  ready in xxx ms
+
+  ➜  Local:   http://localhost:8080/
+  ➜  Network: http://192.168.x.x:8080/
+  ➜  press h + enter to show help
+```
+
+#### Step 7: Open in Browser
+
+1. **Ctrl+Click** (or **Cmd+Click** on Mac) on the `http://localhost:8080/` link
+2. Or manually open your browser and go to `http://localhost:8080`
+
+The HoloLearn application should now be running!
+
+### C.3 VS Code Terminal Commands Reference
+
+| Command | Purpose |
+|---------|---------|
+| `npm install` | Install all dependencies |
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+
+### C.4 Project File Structure in VS Code
+
+```
+📁 hololearn (Root)
+├── 📁 public           # Static assets
+├── 📁 src
+│   ├── 📁 components   # React components
+│   │   ├── 📁 ui       # shadcn/ui components
+│   │   ├── 📄 ModelViewer.tsx
+│   │   └── 📄 Navbar.tsx
+│   ├── 📁 hooks        # Custom React hooks
+│   ├── 📁 integrations # Supabase integration
+│   ├── 📁 lib          # Utility functions
+│   ├── 📁 pages        # Page components
+│   ├── 📄 App.tsx      # Main App component
+│   └── 📄 main.tsx     # Entry point
+├── 📁 supabase
+│   └── 📁 functions    # Edge functions
+├── 📄 .env             # Environment variables
+├── 📄 package.json     # Dependencies
+├── 📄 tailwind.config.ts
+└── 📄 vite.config.ts
+```
+
+### C.5 Troubleshooting Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| `npm install` fails | Delete `node_modules` folder and `package-lock.json`, then run `npm install` again |
+| Port 8080 in use | The server will automatically try another port, or close the application using port 8080 |
+| TypeScript errors | Run `npm run lint` to see all errors, or restart VS Code |
+| 3D model not loading | Check browser console (F12) for errors, ensure WebGL is enabled |
+| API errors | Verify `.env` file exists and contains correct values |
+
+### C.6 Debugging in VS Code
+
+1. Open **Run and Debug** panel (`Ctrl+Shift+D` or `Cmd+Shift+D`)
+2. Click "Create a launch.json file"
+3. Select "Chrome" or "Edge"
+4. Set breakpoints by clicking left of line numbers
+5. Press `F5` to start debugging
+
+### C.7 Building for Production
+
+When ready to deploy:
+
+```bash
+# Build the production bundle
+npm run build
+
+# Preview the production build locally
+npm run preview
+```
+
+The built files will be in the `dist/` folder, ready for deployment.
+
+---
+
+## Appendix D: Exporting Documentation to Word Format
+
+### D.1 Method 1: Using VS Code Extension
+
+1. Install the **Markdown PDF** extension in VS Code
+2. Open `DOCUMENTATION.md`
+3. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+4. Type "Markdown PDF: Export (pdf)"
+5. Convert the PDF to Word using Microsoft Word or online tools
+
+### D.2 Method 2: Using Pandoc (Command Line)
+
+```bash
+# Install Pandoc (Windows: use chocolatey, Mac: use homebrew)
+# Windows
+choco install pandoc
+
+# Mac
+brew install pandoc
+
+# Convert to Word
+pandoc DOCUMENTATION.md -o HoloLearn_Documentation.docx
+```
+
+### D.3 Method 3: Online Converter
+
+1. Copy all content from `DOCUMENTATION.md`
+2. Go to https://cloudconvert.com/md-to-docx
+3. Upload or paste the markdown content
+4. Download the converted Word document
+
+### D.4 Method 4: Using Google Docs
+
+1. Open Google Docs (docs.google.com)
+2. Create a new document
+3. Go to **File → Open** and select the `.md` file
+4. Or paste the markdown content directly
+5. Go to **File → Download → Microsoft Word (.docx)**
+
+---
+
+**Document Version:** 2.0  
 **Last Updated:** January 2025  
-**Author:** HoloLearn Development Team
+**Author:** HoloLearn Development Team  
+**Total Pages:** ~30 pages when exported to Word

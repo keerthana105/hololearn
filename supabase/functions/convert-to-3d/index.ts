@@ -11,6 +11,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let conversionId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -20,11 +23,22 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Supabase configuration missing");
+    }
+
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    const { conversionId, imageUrl } = await req.json();
+    const body = await req.json();
+    conversionId = body.conversionId;
+    const imageUrl = body.imageUrl;
     
-    console.log("Starting 3D conversion for:", conversionId);
+    if (!conversionId || !imageUrl) {
+      throw new Error("Missing required fields: conversionId and imageUrl");
+    }
+    
+    console.log("=== STARTING 3D CONVERSION ===");
+    console.log("Conversion ID:", conversionId);
     console.log("Image URL:", imageUrl);
 
     // Update status to processing
@@ -140,29 +154,43 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content;
     
-    console.log("AI Response received");
+    console.log("=== AI Response received successfully ===");
 
     // Parse the AI response
     let modelData;
     try {
       // Extract JSON from the response (handle markdown code blocks)
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-      const jsonStr = jsonMatch[1] || content;
+      let jsonStr = content;
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
       modelData = JSON.parse(jsonStr.trim());
+      console.log("Successfully parsed AI response");
+      console.log("Object type detected:", modelData.objectType);
+      console.log("Features count:", modelData.features?.length || 0);
     } catch (parseError) {
-      console.log("Generating synthetic depth data due to parse error");
-      // Generate synthetic depth data if parsing fails
+      console.log("Parse error, generating enhanced synthetic depth data");
       modelData = generateSyntheticDepthData();
     }
 
     // Ensure we have a valid depth grid
-    if (!modelData.depthGrid || !Array.isArray(modelData.depthGrid)) {
+    if (!modelData.depthGrid || !Array.isArray(modelData.depthGrid) || modelData.depthGrid.length < 64) {
+      console.log("Invalid depth grid, generating new one");
       modelData.depthGrid = generateDepthGrid();
+    }
+
+    // Ensure depthMultiplier for proper 3D effect
+    if (!modelData.depthMultiplier || modelData.depthMultiplier < 2) {
+      modelData.depthMultiplier = 4.0;
     }
 
     // Add metadata
     modelData.processedAt = new Date().toISOString();
     modelData.originalImageUrl = imageUrl;
+
+    console.log("=== Saving model data to database ===");
+    console.log("Depth grid size:", modelData.depthGrid.length, "x", modelData.depthGrid[0]?.length);
 
     // Update the conversion with the model data
     const { error: updateError } = await supabase
@@ -174,11 +202,11 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
       .eq("id", conversionId);
 
     if (updateError) {
-      console.error("Update error:", updateError);
+      console.error("Database update error:", updateError);
       throw updateError;
     }
 
-    console.log("Conversion completed successfully");
+    console.log("=== CONVERSION COMPLETED SUCCESSFULLY ===");
 
     return new Response(
       JSON.stringify({ success: true, modelData }),
@@ -186,16 +214,12 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
     );
 
   } catch (error) {
-    console.error("Error in convert-to-3d function:", error);
+    console.error("=== ERROR IN CONVERT-TO-3D ===");
+    console.error("Error details:", error instanceof Error ? error.message : error);
     
     // Try to update the conversion status to failed
-    try {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-      
-      const { conversionId } = await req.json().catch(() => ({}));
-      if (conversionId) {
+    if (conversionId && supabase) {
+      try {
         await supabase
           .from("conversions")
           .update({ 
@@ -203,9 +227,10 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
             error_message: error instanceof Error ? error.message : "Unknown error"
           })
           .eq("id", conversionId);
+        console.log("Updated conversion status to failed");
+      } catch (e) {
+        console.error("Failed to update error status:", e);
       }
-    } catch (e) {
-      console.error("Failed to update error status:", e);
     }
 
     return new Response(
