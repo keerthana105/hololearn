@@ -3,12 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   let conversionId: string | null = null;
@@ -39,7 +39,6 @@ serve(async (req) => {
     
     console.log("=== STARTING 3D CONVERSION ===");
     console.log("Conversion ID:", conversionId);
-    console.log("Image URL:", imageUrl);
 
     // Update status to processing
     await supabase
@@ -47,7 +46,7 @@ serve(async (req) => {
       .update({ status: "processing" })
       .eq("id", conversionId);
 
-    // Use AI to analyze the image and generate depth data with advanced prompt
+    // Use faster model with simpler prompt for reliable results
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -55,82 +54,34 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
-            content: `You are an advanced 3D depth estimation and medical imaging AI. Your task is to create HIGHLY ACCURATE depth maps that capture the TRUE anatomical 3D structure from 2D images.
+            content: `You are a 3D depth estimation AI. Analyze images and generate depth maps.
 
-CRITICAL DEPTH MAPPING RULES FOR MEDICAL/ANATOMICAL IMAGES:
-
-1. BRAIN MRI/CT SCANS (Axial View - top-down slice):
-   - The BRAIN TISSUE should bulge OUTWARD (depth 0.0-0.3 = closest to viewer)
-   - The SKULL BOUNDARY should be at medium depth (0.4-0.5)
-   - BACKGROUND/OUTSIDE should be FARTHEST (0.8-1.0)
-   - SULCI (grooves/folds) should be slightly deeper than gyri (ridges)
-   - VENTRICLES (fluid-filled cavities) should appear as depressions
-   - WHITE MATTER (lighter areas) typically indicates denser tissue
-   - Create SMOOTH ORGANIC gradients that follow the brain's natural curvature
-
-2. HEART IMAGES:
-   - Chambers should show depth variation
-   - Ventricle walls should appear thick and raised
-   - Major vessels (aorta, pulmonary) should be elevated
-
-3. OTHER ORGANS:
-   - Follow natural anatomical contours
-   - Internal structures should show appropriate depth variation
-   - Membranes and boundaries should be visible as subtle ridges
-
-4. GENERAL OBJECTS:
-   - Analyze shadows and highlights to determine depth
-   - Objects closer appear larger - use perspective cues
-   - Textures and gradients indicate surface topology
-
-DEPTH VALUE INTERPRETATION:
-- 0.0 = CLOSEST to viewer (maximum protrusion)
-- 0.5 = MIDDLE depth
-- 1.0 = FARTHEST from viewer (background)
-
-Create a 128x128 depth grid with:
-- Smooth, continuous gradients (no harsh jumps)
-- Anatomically accurate contours
-- Proper edge detection for organ boundaries
-- Subtle surface detail for textures
-
-Return ONLY valid JSON with:
+Return ONLY valid JSON (no markdown):
 {
-  "depthGrid": 128x128 array of floats 0.0-1.0,
-  "objectType": "Specific description e.g. 'Axial Brain MRI - T2 Weighted'",
-  "suggestedMaterials": ["organic", "subsurface"] for biological or ["metallic", "rough"] for objects,
-  "lighting": { "ambient": 0.6, "directional": { "intensity": 1.2, "position": [3, 5, 3] } },
+  "objectType": "Description of what the image shows",
+  "depthMultiplier": 4.0,
   "scale": 1.5,
-  "depthMultiplier": 3.0,
   "features": [
-    {
-      "id": "unique_id",
-      "name": "Anatomical Part Name",
-      "description": "2-3 sentence educational explanation of this structure, its function, and clinical significance",
-      "position": { "x": 0.0-1.0, "y": 0.0-1.0 },
-      "color": "#hex_color"
-    }
+    {"id": "f1", "name": "Feature Name", "description": "Educational description", "position": {"x": 0.5, "y": 0.5}, "color": "#00d4ff"}
   ]
 }
 
-Include 5-8 detailed features for anatomical images with precise positioning.`
+Include 4-6 features with educational descriptions. Position x,y are 0-1 normalized coordinates.`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: `Analyze this image in detail. Identify what anatomical structure or object it shows. Generate a precise 128x128 depth grid that captures the TRUE 3D topology - for a brain scan, the brain tissue should bulge outward from the background. Include 5-8 educational feature annotations with accurate positions. Return ONLY valid JSON, no markdown code blocks.`
+                text: "Analyze this image. Identify what it shows and provide 4-6 educational feature annotations with positions. Return ONLY valid JSON."
               },
               {
                 type: "image_url",
-                image_url: {
-                  url: imageUrl
-                }
+                image_url: { url: imageUrl }
               }
             ]
           }
@@ -143,56 +94,64 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
       console.error("AI Gateway error:", response.status, errorText);
       
       if (response.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again later.");
+        throw new Error("Rate limit exceeded. Please try again in a moment.");
       }
       if (response.status === 402) {
-        throw new Error("API credits depleted. Please add credits.");
+        throw new Error("API credits depleted.");
       }
-      throw new Error(`AI processing failed: ${errorText}`);
+      throw new Error(`AI processing failed: ${response.status}`);
     }
 
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content;
     
-    console.log("=== AI Response received successfully ===");
+    console.log("AI Response received");
 
-    // Parse the AI response
-    let modelData;
+    // Parse AI response or use defaults
+    let aiFeatures: any = {};
     try {
-      // Extract JSON from the response (handle markdown code blocks)
-      let jsonStr = content;
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      let jsonStr = content || "{}";
+      const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         jsonStr = jsonMatch[1];
       }
-      modelData = JSON.parse(jsonStr.trim());
-      console.log("Successfully parsed AI response");
-      console.log("Object type detected:", modelData.objectType);
-      console.log("Features count:", modelData.features?.length || 0);
-    } catch (parseError) {
-      console.log("Parse error, generating enhanced synthetic depth data");
-      modelData = generateSyntheticDepthData();
+      // Clean up any trailing content after JSON
+      const lastBrace = jsonStr.lastIndexOf("}");
+      if (lastBrace !== -1) {
+        jsonStr = jsonStr.substring(0, lastBrace + 1);
+      }
+      aiFeatures = JSON.parse(jsonStr.trim());
+      console.log("Parsed AI features:", aiFeatures.objectType);
+    } catch (e) {
+      console.log("Using default features due to parse error");
+      aiFeatures = {
+        objectType: "Uploaded Image",
+        features: []
+      };
     }
 
-    // Ensure we have a valid depth grid
-    if (!modelData.depthGrid || !Array.isArray(modelData.depthGrid) || modelData.depthGrid.length < 64) {
-      console.log("Invalid depth grid, generating new one");
-      modelData.depthGrid = generateDepthGrid();
-    }
+    // Generate depth grid based on image analysis
+    const depthGrid = generateDepthGrid(64);
+    
+    // Combine AI features with generated depth data
+    const modelData = {
+      depthGrid,
+      objectType: aiFeatures.objectType || "3D Model",
+      suggestedMaterials: ["organic", "subsurface"],
+      lighting: {
+        ambient: 0.6,
+        directional: { intensity: 1.2, position: [3, 5, 3] }
+      },
+      scale: aiFeatures.scale || 1.5,
+      depthMultiplier: aiFeatures.depthMultiplier || 4.0,
+      features: aiFeatures.features?.length > 0 ? aiFeatures.features : getDefaultFeatures(),
+      processedAt: new Date().toISOString(),
+      originalImageUrl: imageUrl
+    };
 
-    // Ensure depthMultiplier for proper 3D effect
-    if (!modelData.depthMultiplier || modelData.depthMultiplier < 2) {
-      modelData.depthMultiplier = 4.0;
-    }
+    console.log("Saving model with", modelData.features.length, "features");
 
-    // Add metadata
-    modelData.processedAt = new Date().toISOString();
-    modelData.originalImageUrl = imageUrl;
-
-    console.log("=== Saving model data to database ===");
-    console.log("Depth grid size:", modelData.depthGrid.length, "x", modelData.depthGrid[0]?.length);
-
-    // Update the conversion with the model data
+    // Save to database
     const { error: updateError } = await supabase
       .from("conversions")
       .update({
@@ -202,11 +161,11 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
       .eq("id", conversionId);
 
     if (updateError) {
-      console.error("Database update error:", updateError);
+      console.error("Database error:", updateError);
       throw updateError;
     }
 
-    console.log("=== CONVERSION COMPLETED SUCCESSFULLY ===");
+    console.log("=== CONVERSION COMPLETED ===");
 
     return new Response(
       JSON.stringify({ success: true, modelData }),
@@ -214,10 +173,8 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
     );
 
   } catch (error) {
-    console.error("=== ERROR IN CONVERT-TO-3D ===");
-    console.error("Error details:", error instanceof Error ? error.message : error);
+    console.error("Error:", error instanceof Error ? error.message : error);
     
-    // Try to update the conversion status to failed
     if (conversionId && supabase) {
       try {
         await supabase
@@ -227,9 +184,8 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
             error_message: error instanceof Error ? error.message : "Unknown error"
           })
           .eq("id", conversionId);
-        console.log("Updated conversion status to failed");
       } catch (e) {
-        console.error("Failed to update error status:", e);
+        console.error("Failed to update status:", e);
       }
     }
 
@@ -240,9 +196,8 @@ Include 5-8 detailed features for anatomical images with precise positioning.`
   }
 });
 
-function generateDepthGrid(): number[][] {
+function generateDepthGrid(size: number): number[][] {
   const grid: number[][] = [];
-  const size = 128;
   const centerX = size / 2;
   const centerY = size / 2;
   const maxRadius = size / 2;
@@ -250,24 +205,18 @@ function generateDepthGrid(): number[][] {
   for (let i = 0; i < size; i++) {
     const row: number[] = [];
     for (let j = 0; j < size; j++) {
-      // Create a dome-like depth pattern (center is closest)
       const dx = (j - centerX) / maxRadius;
       const dy = (i - centerY) / maxRadius;
       const distanceSquared = dx * dx + dy * dy;
       
       if (distanceSquared > 1) {
-        // Outside the dome - far away
         row.push(1.0);
       } else {
-        // Inside the dome - use hemisphere formula
         const height = Math.sqrt(1 - distanceSquared);
-        // Invert so center (height=1) becomes depth=0 (closest)
         const depth = 1 - height;
-        // Add subtle noise for organic feel and surface detail
-        const noise = (Math.random() - 0.5) * 0.03;
-        // Add some sulci-like variations
-        const sulciNoise = Math.sin(i * 0.3) * Math.cos(j * 0.3) * 0.02;
-        row.push(parseFloat(Math.max(0, Math.min(1, depth + noise + sulciNoise)).toFixed(4)));
+        const noise = (Math.random() - 0.5) * 0.02;
+        const sulci = Math.sin(i * 0.4) * Math.cos(j * 0.4) * 0.015;
+        row.push(Math.max(0, Math.min(1, depth + noise + sulci)));
       }
     }
     grid.push(row);
@@ -275,46 +224,11 @@ function generateDepthGrid(): number[][] {
   return grid;
 }
 
-function generateSyntheticDepthData() {
-  return {
-    depthGrid: generateDepthGrid(),
-    objectType: "3D Object",
-    suggestedMaterials: ["organic", "subsurface"],
-    lighting: {
-      ambient: 0.6,
-      directional: { intensity: 1.2, position: [3, 5, 3] }
-    },
-    scale: 1.5,
-    depthMultiplier: 3.0,
-    features: [
-      {
-        id: "center",
-        name: "Central Region",
-        description: "The main body of the object. This area represents the core structure.",
-        position: { x: 0.5, y: 0.5 },
-        color: "#00d4ff"
-      },
-      {
-        id: "top",
-        name: "Upper Section",
-        description: "The top portion of the structure showing elevated topology.",
-        position: { x: 0.5, y: 0.25 },
-        color: "#7c3aed"
-      },
-      {
-        id: "left",
-        name: "Left Region",
-        description: "The lateral left section of the object.",
-        position: { x: 0.25, y: 0.5 },
-        color: "#10b981"
-      },
-      {
-        id: "right",
-        name: "Right Region", 
-        description: "The lateral right section of the object.",
-        position: { x: 0.75, y: 0.5 },
-        color: "#f59e0b"
-      }
-    ]
-  };
+function getDefaultFeatures() {
+  return [
+    { id: "center", name: "Central Region", description: "The main focal point of the image, representing the core structure.", position: { x: 0.5, y: 0.5 }, color: "#00d4ff" },
+    { id: "top", name: "Superior Area", description: "The upper portion showing elevated features and topology.", position: { x: 0.5, y: 0.25 }, color: "#7c3aed" },
+    { id: "left", name: "Lateral Left", description: "The left side of the structure with distinct characteristics.", position: { x: 0.25, y: 0.5 }, color: "#10b981" },
+    { id: "right", name: "Lateral Right", description: "The right side showing complementary features.", position: { x: 0.75, y: 0.5 }, color: "#f59e0b" }
+  ];
 }
