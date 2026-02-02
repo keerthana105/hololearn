@@ -1,35 +1,165 @@
 import * as THREE from "three";
 
 interface ModelData {
-  depthGrid: number[][];
+  shapeType?: string;
+  geometryParams?: {
+    scale?: number;
+    detailLevel?: number;
+  };
+  // Legacy support
+  depthGrid?: number[][];
   scale?: number;
 }
 
-function createGeometryFromDepthGrid(depthGrid: number[][], scale: number = 1): THREE.BufferGeometry {
-  const size = depthGrid.length;
-  const geometry = new THREE.PlaneGeometry(4, 4, size - 1, size - 1);
-  const positions = geometry.attributes.position.array as Float32Array;
+// =============== GEOMETRY GENERATORS (Shared with ModelViewer) ===============
+
+function createHeartGeometry(detail: number = 48): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
   
-  for (let i = 0; i < size; i++) {
-    for (let j = 0; j < size; j++) {
-      const vertexIndex = (i * size + j) * 3 + 2;
-      const depth = depthGrid[i]?.[j] ?? 0.5;
-      positions[vertexIndex] = (1 - depth) * 1.5 * scale;
+  const latSegments = detail;
+  const lonSegments = detail;
+  
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const v = lat / latSegments;
+    const theta = v * Math.PI;
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const u = lon / lonSegments;
+      const phi = u * 2 * Math.PI;
+      
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      
+      let x = sinTheta * cosPhi;
+      let y = cosTheta;
+      let z = sinTheta * sinPhi;
+      
+      // Heart deformation
+      if (y < -0.7) {
+        const pointFactor = (-y - 0.7) / 0.3;
+        x *= 1 - pointFactor * 0.8;
+        z *= 1 - pointFactor * 0.8;
+      }
+      
+      if (y > 0) {
+        const lobeFactor = y * 0.5;
+        const lobeOffset = Math.abs(Math.sin(phi)) * lobeFactor;
+        x *= 1 + lobeOffset * 0.3;
+        z *= 1 + lobeOffset * 0.3;
+      }
+      
+      const scale = 1.8;
+      x *= scale;
+      y *= scale;
+      z *= scale;
+      
+      vertices.push(x, y, z);
+      
+      const nx = x, ny = y, nz = z;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      normals.push(nx / len, ny / len, nz / len);
     }
   }
   
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const current = lat * (lonSegments + 1) + lon;
+      const next = current + lonSegments + 1;
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setIndex(indices);
   geometry.computeVertexNormals();
+  
   return geometry;
 }
 
+function createOrganicGeometry(detail: number = 48): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+  
+  const latSegments = detail;
+  const lonSegments = detail;
+  
+  const noise = (x: number, y: number, z: number) => {
+    return Math.sin(x * 3) * Math.cos(y * 4) * Math.sin(z * 3.5) * 0.15;
+  };
+  
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const v = lat / latSegments;
+    const theta = v * Math.PI;
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const u = lon / lonSegments;
+      const phi = u * 2 * Math.PI;
+      
+      let x = Math.sin(theta) * Math.cos(phi);
+      let y = Math.cos(theta);
+      let z = Math.sin(theta) * Math.sin(phi);
+      
+      const n = noise(x * 5, y * 5, z * 5);
+      const radius = 1.5 + n;
+      
+      x *= radius;
+      y *= radius;
+      z *= radius;
+      
+      vertices.push(x, y, z);
+      
+      const nx = x, ny = y, nz = z;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      normals.push(nx / len, ny / len, nz / len);
+    }
+  }
+  
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const current = lat * (lonSegments + 1) + lon;
+      const next = current + lonSegments + 1;
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}
+
+function createGeometryFromModel(modelData: ModelData): THREE.BufferGeometry {
+  const shapeType = modelData.shapeType || 'organic';
+  const detail = modelData.geometryParams?.detailLevel || 48;
+  
+  switch (shapeType.toLowerCase()) {
+    case 'heart':
+      return createHeartGeometry(detail);
+    default:
+      return createOrganicGeometry(detail);
+  }
+}
+
 export function exportToOBJ(modelData: ModelData): string {
-  const geometry = createGeometryFromDepthGrid(modelData.depthGrid, modelData.scale);
+  const geometry = createGeometryFromModel(modelData);
   const positions = geometry.attributes.position.array as Float32Array;
   const normals = geometry.attributes.normal?.array as Float32Array | undefined;
   const indices = geometry.index?.array;
   
   let obj = "# HoloLearn 3D Export - OBJ Format\n";
-  obj += "# Generated by HoloLearn AI\n\n";
+  obj += "# Generated by HoloLearn AI - True 3D Volumetric Model\n\n";
   obj += "o HoloLearn_Model\n\n";
   
   // Vertices
@@ -65,7 +195,7 @@ export function exportToOBJ(modelData: ModelData): string {
 }
 
 export function exportToSTL(modelData: ModelData): ArrayBuffer {
-  const geometry = createGeometryFromDepthGrid(modelData.depthGrid, modelData.scale);
+  const geometry = createGeometryFromModel(modelData);
   const positions = geometry.attributes.position.array as Float32Array;
   const indices = geometry.index?.array;
   
@@ -75,19 +205,17 @@ export function exportToSTL(modelData: ModelData): ArrayBuffer {
   
   const triangleCount = indices.length / 3;
   const headerLength = 80;
-  const triangleDataLength = 4 * 12 + 2; // 12 floats + 2 bytes
+  const triangleDataLength = 4 * 12 + 2;
   const bufferLength = headerLength + 4 + triangleCount * triangleDataLength;
   
   const buffer = new ArrayBuffer(bufferLength);
   const dataView = new DataView(buffer);
-  const header = "HoloLearn STL Export - Binary Format";
+  const header = "HoloLearn STL Export - True 3D Volumetric Model";
   
-  // Header
   for (let i = 0; i < headerLength; i++) {
     dataView.setUint8(i, i < header.length ? header.charCodeAt(i) : 0);
   }
   
-  // Triangle count
   dataView.setUint32(headerLength, triangleCount, true);
   
   let offset = headerLength + 4;
@@ -97,37 +225,30 @@ export function exportToSTL(modelData: ModelData): ArrayBuffer {
     const b = indices[i + 1];
     const c = indices[i + 2];
     
-    // Get vertices
     const v1 = new THREE.Vector3(positions[a * 3], positions[a * 3 + 1], positions[a * 3 + 2]);
     const v2 = new THREE.Vector3(positions[b * 3], positions[b * 3 + 1], positions[b * 3 + 2]);
     const v3 = new THREE.Vector3(positions[c * 3], positions[c * 3 + 1], positions[c * 3 + 2]);
     
-    // Calculate normal
     const edge1 = new THREE.Vector3().subVectors(v2, v1);
     const edge2 = new THREE.Vector3().subVectors(v3, v1);
     const normal = new THREE.Vector3().crossVectors(edge1, edge2).normalize();
     
-    // Normal
     dataView.setFloat32(offset, normal.x, true); offset += 4;
     dataView.setFloat32(offset, normal.y, true); offset += 4;
     dataView.setFloat32(offset, normal.z, true); offset += 4;
     
-    // Vertex 1
     dataView.setFloat32(offset, v1.x, true); offset += 4;
     dataView.setFloat32(offset, v1.y, true); offset += 4;
     dataView.setFloat32(offset, v1.z, true); offset += 4;
     
-    // Vertex 2
     dataView.setFloat32(offset, v2.x, true); offset += 4;
     dataView.setFloat32(offset, v2.y, true); offset += 4;
     dataView.setFloat32(offset, v2.z, true); offset += 4;
     
-    // Vertex 3
     dataView.setFloat32(offset, v3.x, true); offset += 4;
     dataView.setFloat32(offset, v3.y, true); offset += 4;
     dataView.setFloat32(offset, v3.z, true); offset += 4;
     
-    // Attribute byte count
     dataView.setUint16(offset, 0, true); offset += 2;
   }
   
@@ -136,7 +257,7 @@ export function exportToSTL(modelData: ModelData): ArrayBuffer {
 }
 
 export function exportToGLTF(modelData: ModelData): string {
-  const geometry = createGeometryFromDepthGrid(modelData.depthGrid, modelData.scale);
+  const geometry = createGeometryFromModel(modelData);
   const positions = geometry.attributes.position.array as Float32Array;
   const normals = geometry.attributes.normal?.array as Float32Array;
   const indices = geometry.index?.array;
@@ -145,7 +266,6 @@ export function exportToGLTF(modelData: ModelData): string {
     throw new Error("Geometry has no indices");
   }
   
-  // Convert to base64
   const positionBuffer = btoa(String.fromCharCode(...new Uint8Array(positions.buffer)));
   const normalBuffer = normals ? btoa(String.fromCharCode(...new Uint8Array(normals.buffer))) : "";
   const indexBuffer = btoa(String.fromCharCode(...new Uint8Array(new Uint16Array(indices).buffer)));
@@ -153,11 +273,11 @@ export function exportToGLTF(modelData: ModelData): string {
   const gltf = {
     asset: {
       version: "2.0",
-      generator: "HoloLearn 3D Export"
+      generator: "HoloLearn 3D Export - True Volumetric"
     },
     scene: 0,
     scenes: [{ nodes: [0] }],
-    nodes: [{ mesh: 0, name: "HoloLearn_Model" }],
+    nodes: [{ mesh: 0, name: "HoloLearn_Volumetric_Model" }],
     meshes: [{
       primitives: [{
         attributes: {
@@ -171,9 +291,9 @@ export function exportToGLTF(modelData: ModelData): string {
     materials: [{
       name: "HoloLearn_Material",
       pbrMetallicRoughness: {
-        baseColorFactor: [0, 0.83, 1, 1],
-        metallicFactor: 0.3,
-        roughnessFactor: 0.4
+        baseColorFactor: [0.91, 0.71, 0.71, 1],
+        metallicFactor: 0.1,
+        roughnessFactor: 0.5
       }
     }],
     accessors: [
@@ -182,8 +302,8 @@ export function exportToGLTF(modelData: ModelData): string {
         componentType: 5126,
         count: positions.length / 3,
         type: "VEC3",
-        max: [2, 2, 2],
-        min: [-2, -2, -2]
+        max: [3, 3, 3],
+        min: [-3, -3, -3]
       },
       ...(normals ? [{
         bufferView: 1,

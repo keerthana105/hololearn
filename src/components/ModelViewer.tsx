@@ -7,51 +7,490 @@ interface Feature {
   id: string;
   name: string;
   description: string;
-  position: { x: number; y: number };
+  position: { x: number; y: number; z?: number };
   color: string;
+}
+
+interface GeometryParams {
+  scale?: number;
+  detailLevel?: number;
+  asymmetry?: number;
 }
 
 interface ModelViewerProps {
   modelData: {
-    depthGrid: number[][];
+    shapeType?: string;
     objectType?: string;
-    suggestedMaterials?: string[];
-    lighting?: {
-      ambient?: number;
-      directional?: { intensity: number; position: number[] };
-    };
-    scale?: number;
-    depthMultiplier?: number;
+    geometryParams?: GeometryParams;
     features?: Feature[];
     originalImageUrl?: string;
+    // Legacy support
+    depthGrid?: number[][];
+    scale?: number;
+    depthMultiplier?: number;
   } | null;
 }
 
-interface FeatureHotspotProps {
+// =============== PARAMETRIC GEOMETRY GENERATORS ===============
+
+function createHeartGeometry(detail: number = 64): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  
+  const latSegments = detail;
+  const lonSegments = detail;
+  
+  // Generate vertices using parametric heart surface
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const v = lat / latSegments;
+    const theta = v * Math.PI;
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const u = lon / lonSegments;
+      const phi = u * 2 * Math.PI;
+      
+      // Heart parametric equations
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      
+      // Modified sphere with heart shape deformation
+      let x = sinTheta * cosPhi;
+      let y = cosTheta;
+      let z = sinTheta * sinPhi;
+      
+      // Apply heart deformation
+      const heartFactor = Math.pow(Math.abs(y), 0.3);
+      const indent = y < 0 ? 0.3 * (1 - heartFactor) * Math.pow(Math.cos(phi), 2) : 0;
+      const bulge = y > 0.2 ? 0.2 * Math.pow(1 - y, 2) : 0;
+      
+      // Bottom point
+      if (y < -0.7) {
+        const pointFactor = (-y - 0.7) / 0.3;
+        x *= 1 - pointFactor * 0.8;
+        z *= 1 - pointFactor * 0.8;
+      }
+      
+      // Top lobes
+      if (y > 0) {
+        const lobeFactor = y * 0.5;
+        const lobeOffset = Math.abs(Math.sin(phi)) * lobeFactor;
+        x *= 1 + lobeOffset * 0.3;
+        z *= 1 + lobeOffset * 0.3;
+      }
+      
+      // Apply indent for top cleft
+      if (y > 0.3) {
+        const cleftDepth = 0.4 * Math.pow((y - 0.3) / 0.7, 2);
+        const cleftWidth = Math.pow(Math.cos(phi), 4);
+        const radialFactor = Math.sqrt(x * x + z * z);
+        x -= cleftWidth * cleftDepth * Math.sign(x) * 0.5;
+      }
+      
+      // Scale
+      const scale = 1.8;
+      x *= scale;
+      y *= scale;
+      z *= scale;
+      
+      vertices.push(x, y, z);
+      
+      // Simple normal approximation
+      const nx = x, ny = y, nz = z;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      normals.push(nx / len, ny / len, nz / len);
+      
+      uvs.push(u, 1 - v);
+    }
+  }
+  
+  // Generate indices
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const current = lat * (lonSegments + 1) + lon;
+      const next = current + lonSegments + 1;
+      
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}
+
+function createBrainGeometry(detail: number = 64): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  
+  const latSegments = detail;
+  const lonSegments = detail;
+  
+  // Simple noise function for sulci
+  const noise = (x: number, y: number, z: number, freq: number) => {
+    return Math.sin(x * freq) * Math.cos(y * freq * 0.8) * Math.sin(z * freq * 1.2);
+  };
+  
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const v = lat / latSegments;
+    const theta = v * Math.PI;
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const u = lon / lonSegments;
+      const phi = u * 2 * Math.PI;
+      
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      
+      // Base ellipsoid (brain proportions: wider than tall)
+      let x = sinTheta * cosPhi * 1.3;  // Wider
+      let y = cosTheta * 0.9;            // Shorter top-bottom
+      let z = sinTheta * sinPhi * 1.1;   // Medium front-back
+      
+      // Add sulci (grooves) - multiple frequencies
+      const sulci1 = noise(x, y, z, 8) * 0.08;
+      const sulci2 = noise(x * 2, y * 2, z * 2, 12) * 0.04;
+      const sulci3 = noise(x * 0.5, y * 0.5, z * 0.5, 4) * 0.06;
+      const sulciTotal = sulci1 + sulci2 + sulci3;
+      
+      // Central fissure (longitudinal)
+      const fissureDepth = 0.15 * Math.exp(-Math.pow(z * 8, 2));
+      
+      // Flatten the bottom
+      if (y < -0.3) {
+        const flatFactor = (-y - 0.3) / 0.6;
+        y = -0.3 - flatFactor * 0.2;
+      }
+      
+      // Apply deformations
+      const radius = Math.sqrt(x * x + y * y + z * z);
+      const deformedRadius = radius * (1 + sulciTotal - fissureDepth);
+      const factor = deformedRadius / (radius || 1);
+      
+      x *= factor * 1.5;
+      y *= factor * 1.5;
+      z *= factor * 1.5;
+      
+      vertices.push(x, y, z);
+      
+      const nx = x, ny = y, nz = z;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      normals.push(nx / len, ny / len, nz / len);
+      
+      uvs.push(u, 1 - v);
+    }
+  }
+  
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const current = lat * (lonSegments + 1) + lon;
+      const next = current + lonSegments + 1;
+      
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}
+
+function createLungGeometry(detail: number = 48, isLeft: boolean = false): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  
+  const latSegments = detail;
+  const lonSegments = detail;
+  
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const v = lat / latSegments;
+    const theta = v * Math.PI;
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const u = lon / lonSegments;
+      const phi = u * 2 * Math.PI;
+      
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      
+      // Elongated base shape
+      let x = sinTheta * cosPhi * 0.7;
+      let y = cosTheta * 1.4;  // Taller
+      let z = sinTheta * sinPhi * 0.5;  // Thinner
+      
+      // Taper at top
+      if (y > 0) {
+        const taperFactor = 1 - y * 0.3;
+        x *= taperFactor;
+        z *= taperFactor;
+      }
+      
+      // Create lobes
+      const lobeSeparation = isLeft ? 0.1 : 0.15;
+      if (y < 0.2 && y > -0.8) {
+        const lobeIndent = Math.sin((y + 0.3) * 3) * 0.1 * (1 - Math.abs(sinPhi));
+        x += lobeIndent;
+      }
+      
+      // Inner curve (where heart sits)
+      const innerCurve = Math.exp(-Math.pow((phi - Math.PI) * 2, 2)) * 0.2;
+      if (cosPhi > 0) {
+        x -= innerCurve * (isLeft ? 1 : -1);
+      }
+      
+      const scale = 1.4;
+      const offsetX = isLeft ? -0.9 : 0.9;
+      x = x * scale + offsetX;
+      y *= scale;
+      z *= scale;
+      
+      vertices.push(x, y, z);
+      
+      const nx = x - offsetX, ny = y, nz = z;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      normals.push(nx / len, ny / len, nz / len);
+      
+      uvs.push(u, 1 - v);
+    }
+  }
+  
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const current = lat * (lonSegments + 1) + lon;
+      const next = current + lonSegments + 1;
+      
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}
+
+function createKidneyGeometry(detail: number = 48): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  
+  const latSegments = detail;
+  const lonSegments = detail;
+  
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const v = lat / latSegments;
+    const theta = v * Math.PI;
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const u = lon / lonSegments;
+      const phi = u * 2 * Math.PI;
+      
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      
+      // Bean shape base
+      let x = sinTheta * cosPhi;
+      let y = cosTheta * 0.5;  // Shorter
+      let z = sinTheta * sinPhi * 0.4;  // Thin
+      
+      // Create the hilum (inner indent)
+      const hilumAngle = Math.PI;
+      const hilumDepth = 0.3 * Math.exp(-Math.pow((phi - hilumAngle) * 2, 2));
+      const hilumY = Math.exp(-Math.pow(y * 3, 2));
+      x -= hilumDepth * hilumY * cosPhi;
+      z -= hilumDepth * hilumY * sinPhi * 0.5;
+      
+      // Make it bean-curved
+      x += Math.sin(theta) * 0.2 * Math.sign(cosPhi);
+      
+      const scale = 2.0;
+      x *= scale;
+      y *= scale;
+      z *= scale;
+      
+      vertices.push(x, y, z);
+      
+      const nx = x, ny = y, nz = z;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      normals.push(nx / len, ny / len, nz / len);
+      
+      uvs.push(u, 1 - v);
+    }
+  }
+  
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const current = lat * (lonSegments + 1) + lon;
+      const next = current + lonSegments + 1;
+      
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}
+
+function createOrganicGeometry(detail: number = 48): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  
+  const latSegments = detail;
+  const lonSegments = detail;
+  
+  // Simple noise for organic shape
+  const noise = (x: number, y: number, z: number) => {
+    return Math.sin(x * 3) * Math.cos(y * 4) * Math.sin(z * 3.5) * 0.15 +
+           Math.sin(x * 7) * Math.cos(y * 6) * 0.05;
+  };
+  
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const v = lat / latSegments;
+    const theta = v * Math.PI;
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const u = lon / lonSegments;
+      const phi = u * 2 * Math.PI;
+      
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      
+      let x = sinTheta * cosPhi;
+      let y = cosTheta;
+      let z = sinTheta * sinPhi;
+      
+      // Add organic variation
+      const n = noise(x * 5, y * 5, z * 5);
+      const radius = 1.5 + n;
+      
+      x *= radius;
+      y *= radius;
+      z *= radius;
+      
+      vertices.push(x, y, z);
+      
+      const nx = x, ny = y, nz = z;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      normals.push(nx / len, ny / len, nz / len);
+      
+      uvs.push(u, 1 - v);
+    }
+  }
+  
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const current = lat * (lonSegments + 1) + lon;
+      const next = current + lonSegments + 1;
+      
+      indices.push(current, next, current + 1);
+      indices.push(current + 1, next, next + 1);
+    }
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}
+
+// =============== 3D FEATURE HOTSPOT ===============
+
+interface FeatureHotspot3DProps {
   feature: Feature;
-  gridSize: number;
-  depthGrid: number[][];
-  scale: number;
-  depthMultiplier: number;
+  shapeType: string;
   isSelected: boolean;
   onSelect: () => void;
 }
 
-function FeatureHotspot({ feature, gridSize, depthGrid, scale, depthMultiplier, isSelected, onSelect }: FeatureHotspotProps) {
+function FeatureHotspot3D({ feature, shapeType, isSelected, onSelect }: FeatureHotspot3DProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   
+  // Convert 2D position to 3D position on the shape surface
   const position = useMemo(() => {
-    const meshSize = 4;
-    const x = (feature.position.x - 0.5) * meshSize;
-    const y = (0.5 - feature.position.y) * meshSize;
+    const { x, y, z } = feature.position;
     
-    const gridX = Math.floor(feature.position.x * (gridSize - 1));
-    const gridY = Math.floor(feature.position.y * (gridSize - 1));
-    const depth = depthGrid[gridY]?.[gridX] ?? 0.5;
-    const z = (1 - depth) * depthMultiplier * scale + 0.2;
+    // If z is provided, use it directly
+    if (z !== undefined) {
+      return [x * 2 - 1, y * 2 - 1, z] as [number, number, number];
+    }
     
-    return [x, y, z] as [number, number, number];
-  }, [feature.position, gridSize, depthGrid, scale, depthMultiplier]);
+    // Otherwise, map 2D to 3D sphere surface
+    const theta = y * Math.PI;
+    const phi = x * 2 * Math.PI;
+    
+    let radius = 1.6;
+    
+    // Adjust radius based on shape type
+    switch (shapeType) {
+      case 'heart':
+        radius = 2.0;
+        break;
+      case 'brain':
+        radius = 1.7;
+        break;
+      case 'lung':
+      case 'lungs':
+        radius = 1.5;
+        break;
+      case 'kidney':
+        radius = 2.2;
+        break;
+      default:
+        radius = 1.8;
+    }
+    
+    const px = Math.sin(theta) * Math.cos(phi) * radius;
+    const py = Math.cos(theta) * radius;
+    const pz = Math.sin(theta) * Math.sin(phi) * radius;
+    
+    return [px, py, pz] as [number, number, number];
+  }, [feature.position, shapeType]);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -68,7 +507,7 @@ function FeatureHotspot({ feature, gridSize, depthGrid, scale, depthMultiplier, 
         onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
         onPointerOut={() => { document.body.style.cursor = 'auto'; }}
       >
-        <sphereGeometry args={[0.08, 16, 16]} />
+        <sphereGeometry args={[0.1, 16, 16]} />
         <meshStandardMaterial 
           color={feature.color || "#00d4ff"} 
           emissive={feature.color || "#00d4ff"}
@@ -80,7 +519,7 @@ function FeatureHotspot({ feature, gridSize, depthGrid, scale, depthMultiplier, 
       
       {/* Outer ring */}
       <mesh rotation={[0, 0, 0]}>
-        <ringGeometry args={[0.1, 0.13, 32]} />
+        <ringGeometry args={[0.12, 0.16, 32]} />
         <meshBasicMaterial color={feature.color || "#00d4ff"} transparent opacity={0.7} side={THREE.DoubleSide} />
       </mesh>
       
@@ -110,17 +549,16 @@ function FeatureHotspot({ feature, gridSize, depthGrid, scale, depthMultiplier, 
   );
 }
 
-function TexturedDepthMesh({ 
-  depthGrid, 
-  scale = 1, 
-  depthMultiplier = 3,
-  imageUrl 
-}: { 
-  depthGrid: number[][]; 
-  scale: number;
-  depthMultiplier: number;
+// =============== VOLUMETRIC 3D MODEL ===============
+
+interface Volumetric3DModelProps {
+  shapeType: string;
   imageUrl?: string;
-}) {
+  scale?: number;
+  detailLevel?: number;
+}
+
+function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 48 }: Volumetric3DModelProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   
@@ -134,7 +572,8 @@ function TexturedDepthMesh({
           loadedTexture.colorSpace = THREE.SRGBColorSpace;
           loadedTexture.minFilter = THREE.LinearFilter;
           loadedTexture.magFilter = THREE.LinearFilter;
-          loadedTexture.generateMipmaps = true;
+          loadedTexture.wrapS = THREE.RepeatWrapping;
+          loadedTexture.wrapT = THREE.RepeatWrapping;
           setTexture(loadedTexture);
         },
         undefined,
@@ -146,50 +585,42 @@ function TexturedDepthMesh({
   }, [imageUrl]);
   
   const geometry = useMemo(() => {
-    const size = depthGrid.length;
-    const meshSize = 4;
-    const segments = Math.min(size - 1, 256); // Limit for performance
-    const geo = new THREE.PlaneGeometry(meshSize, meshSize, segments, segments);
-    const positions = geo.attributes.position.array as Float32Array;
+    const detail = detailLevel;
     
-    const step = (size - 1) / segments;
-    
-    for (let i = 0; i <= segments; i++) {
-      for (let j = 0; j <= segments; j++) {
-        const vertexIndex = (i * (segments + 1) + j) * 3 + 2;
-        const srcI = Math.min(Math.floor(i * step), size - 1);
-        const srcJ = Math.min(Math.floor(j * step), size - 1);
-        const depth = depthGrid[srcI]?.[srcJ] ?? 0.5;
-        // Depth 0 = closest (max z), depth 1 = farthest (min z)
-        positions[vertexIndex] = (1 - depth) * depthMultiplier * scale;
-      }
+    switch (shapeType.toLowerCase()) {
+      case 'heart':
+        return createHeartGeometry(detail);
+      case 'brain':
+        return createBrainGeometry(detail);
+      case 'lung':
+      case 'lungs':
+        return createLungGeometry(detail, false);
+      case 'kidney':
+        return createKidneyGeometry(detail);
+      case 'organ':
+      case 'organic':
+      case 'circular':
+      case 'irregular':
+      default:
+        return createOrganicGeometry(detail);
     }
-    
-    geo.computeVertexNormals();
-    return geo;
-  }, [depthGrid, scale, depthMultiplier]);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.1) * 0.05;
-    }
-  });
+  }, [shapeType, detailLevel]);
 
   return (
-    <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
+    <mesh ref={meshRef} geometry={geometry} scale={scale} castShadow receiveShadow>
       {texture ? (
         <meshStandardMaterial
           map={texture}
-          metalness={0.05}
-          roughness={0.7}
+          metalness={0.1}
+          roughness={0.6}
           side={THREE.DoubleSide}
           envMapIntensity={0.5}
         />
       ) : (
         <meshStandardMaterial
-          color="#a0c4ff"
+          color="#e8b4b4"
           metalness={0.1}
-          roughness={0.6}
+          roughness={0.5}
           side={THREE.DoubleSide}
         />
       )}
@@ -197,56 +628,56 @@ function TexturedDepthMesh({
   );
 }
 
-function WireframeOverlay({ depthGrid, scale = 1, depthMultiplier = 3 }: { depthGrid: number[][]; scale: number; depthMultiplier: number }) {
+// =============== WIREFRAME OVERLAY ===============
+
+function WireframeOverlay3D({ shapeType, scale = 1 }: { shapeType: string; scale?: number }) {
   const geometry = useMemo(() => {
-    const size = depthGrid.length;
-    const meshSize = 4;
-    const wireframeRes = Math.min(size, 48);
-    const geo = new THREE.PlaneGeometry(meshSize, meshSize, wireframeRes - 1, wireframeRes - 1);
-    const positions = geo.attributes.position.array as Float32Array;
+    const detail = 24; // Lower detail for wireframe
     
-    const step = (size - 1) / (wireframeRes - 1);
-    for (let i = 0; i < wireframeRes; i++) {
-      for (let j = 0; j < wireframeRes; j++) {
-        const vertexIndex = (i * wireframeRes + j) * 3 + 2;
-        const srcI = Math.min(Math.floor(i * step), size - 1);
-        const srcJ = Math.min(Math.floor(j * step), size - 1);
-        const depth = depthGrid[srcI]?.[srcJ] ?? 0.5;
-        positions[vertexIndex] = (1 - depth) * depthMultiplier * scale + 0.01;
-      }
+    switch (shapeType.toLowerCase()) {
+      case 'heart':
+        return createHeartGeometry(detail);
+      case 'brain':
+        return createBrainGeometry(detail);
+      case 'lung':
+      case 'lungs':
+        return createLungGeometry(detail, false);
+      case 'kidney':
+        return createKidneyGeometry(detail);
+      default:
+        return createOrganicGeometry(detail);
     }
-    
-    geo.computeVertexNormals();
-    return geo;
-  }, [depthGrid, scale, depthMultiplier]);
+  }, [shapeType]);
 
   return (
-    <mesh geometry={geometry}>
-      <meshBasicMaterial color="#7c3aed" wireframe transparent opacity={0.12} />
+    <mesh geometry={geometry} scale={scale * 1.002}>
+      <meshBasicMaterial color="#7c3aed" wireframe transparent opacity={0.15} />
     </mesh>
   );
 }
+
+// =============== MAIN SCENE ===============
 
 function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerProps & { 
   selectedFeature: string | null; 
   setSelectedFeature: (id: string | null) => void;
 }) {
-  if (!modelData?.depthGrid) {
+  if (!modelData) {
     return null;
   }
 
-  const scale = modelData.scale ?? 1.5;
-  const depthMultiplier = modelData.depthMultiplier ?? 3.0;
-  const ambient = modelData.lighting?.ambient ?? 0.6;
-  const directional = modelData.lighting?.directional;
+  // Determine shape type (with legacy fallback)
+  const shapeType = modelData.shapeType || 'organic';
+  const scale = modelData.geometryParams?.scale || modelData.scale || 1.0;
+  const detailLevel = modelData.geometryParams?.detailLevel || 48;
   const features = modelData.features ?? [];
 
   return (
     <>
-      <ambientLight intensity={ambient} />
+      <ambientLight intensity={0.6} />
       <directionalLight
-        position={directional?.position as [number, number, number] ?? [3, 5, 3]}
-        intensity={directional?.intensity ?? 1.2}
+        position={[3, 5, 3]}
+        intensity={1.2}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -255,27 +686,22 @@ function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerPr
       <pointLight position={[3, 2, 3]} intensity={0.4} color="#00d4ff" />
       <pointLight position={[0, -2, 4]} intensity={0.3} color="#ffffff" />
       
-      <group rotation={[-Math.PI / 4.5, 0, 0]} onClick={() => setSelectedFeature(null)}>
-        <TexturedDepthMesh 
-          depthGrid={modelData.depthGrid} 
-          scale={scale} 
-          depthMultiplier={depthMultiplier}
+      {/* Main 3D Model - NO fixed rotation, full 360° rotation enabled */}
+      <group onClick={() => setSelectedFeature(null)}>
+        <Volumetric3DModel 
+          shapeType={shapeType}
           imageUrl={modelData.originalImageUrl}
+          scale={scale}
+          detailLevel={detailLevel}
         />
-        <WireframeOverlay 
-          depthGrid={modelData.depthGrid} 
-          scale={scale} 
-          depthMultiplier={depthMultiplier}
-        />
+        <WireframeOverlay3D shapeType={shapeType} scale={scale} />
         
+        {/* Feature Hotspots */}
         {features.map((feature) => (
-          <FeatureHotspot
+          <FeatureHotspot3D
             key={feature.id}
             feature={feature}
-            gridSize={modelData.depthGrid.length}
-            depthGrid={modelData.depthGrid}
-            scale={scale}
-            depthMultiplier={depthMultiplier}
+            shapeType={shapeType}
             isSelected={selectedFeature === feature.id}
             onSelect={() => setSelectedFeature(selectedFeature === feature.id ? null : feature.id)}
           />
@@ -283,7 +709,7 @@ function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerPr
       </group>
       
       <Grid
-        position={[0, -4, 0]}
+        position={[0, -3, 0]}
         args={[20, 20]}
         cellSize={0.5}
         cellThickness={0.5}
@@ -301,25 +727,28 @@ function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerPr
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
-        minDistance={3}
+        minDistance={2}
         maxDistance={15}
         autoRotate
-        autoRotateSpeed={0.4}
+        autoRotateSpeed={0.5}
         target={[0, 0, 0]}
       />
     </>
   );
 }
 
+// =============== MAIN COMPONENT ===============
+
 export default function ModelViewer({ modelData }: ModelViewerProps) {
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const features = modelData?.features ?? [];
   const objectType = modelData?.objectType;
+  const shapeType = modelData?.shapeType || 'organic';
 
   return (
     <div className="w-full h-full min-h-[400px] rounded-xl overflow-hidden bg-background relative">
       <Canvas
-        camera={{ position: [0, 4, 8], fov: 45 }}
+        camera={{ position: [0, 2, 5], fov: 45 }}
         shadows
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       >
@@ -329,6 +758,11 @@ export default function ModelViewer({ modelData }: ModelViewerProps) {
           setSelectedFeature={setSelectedFeature}
         />
       </Canvas>
+      
+      {/* Shape Type Badge */}
+      <div className="absolute top-4 right-4 bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs px-3 py-1.5 rounded-full font-medium uppercase tracking-wider">
+        {shapeType} Model
+      </div>
       
       {/* Feature Panel */}
       {features.length > 0 && (
@@ -361,7 +795,7 @@ export default function ModelViewer({ modelData }: ModelViewerProps) {
       
       {/* Instructions */}
       <div className="absolute bottom-4 right-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border/50">
-        🎯 Click hotspots • 🔄 Drag to rotate • 🔍 Scroll to zoom
+        🎯 Click hotspots • 🔄 Drag to rotate 360° • 🔍 Scroll to zoom
       </div>
     </div>
   );
