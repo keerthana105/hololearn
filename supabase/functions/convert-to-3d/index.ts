@@ -187,8 +187,8 @@ For other organs: include relevant anatomical landmarks`
       .eq("id", conversionId);
 
     if (updateError) {
-      console.error("Database error:", updateError);
-      throw updateError;
+      console.error("Database update error (non-fatal):", updateError);
+      // Still return the model data even if DB save fails
     }
 
     console.log("=== CONVERSION COMPLETED ===");
