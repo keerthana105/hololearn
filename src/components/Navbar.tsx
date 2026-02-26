@@ -63,6 +63,16 @@ export default function Navbar() {
               How It Works
             </a>
             <a
+              href="#demo"
+              className="text-muted-foreground hover:text-primary transition-colors font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("demo")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              Demo
+            </a>
+            <a
               href="#about"
               className="text-muted-foreground hover:text-primary transition-colors font-medium"
               onClick={(e) => {
@@ -153,6 +163,17 @@ export default function Navbar() {
                 }}
               >
                 How It Works
+              </a>
+              <a
+                href="#demo"
+                className="text-muted-foreground hover:text-primary transition-colors py-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById("demo")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                Demo
               </a>
               <a
                 href="#about"
