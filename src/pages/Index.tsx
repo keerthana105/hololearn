@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import demoVideo from "@/assets/demo-video.mp4";
 import Navbar from "@/components/Navbar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
@@ -239,7 +240,57 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Unique Feature Section */}
+      {/* Demo Video Section */}
+      <section id="demo" className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-primary/10 rounded-full blur-[120px]" />
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-sm font-medium mb-4">
+              <Play className="w-4 h-4" />
+              Live Demo
+            </div>
+            <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
+              See It In <span className="text-glow">Action</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Watch how HoloLearn transforms 2D anatomy images into interactive 3D holographic models in seconds
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="card-glass rounded-2xl overflow-hidden gradient-border">
+              <div className="relative">
+                <video
+                  className="w-full aspect-video object-cover"
+                  src={demoVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+                {/* Overlay gradient for blending */}
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background/20 via-transparent to-transparent" />
+              </div>
+              <div className="p-6 text-center">
+                <p className="text-muted-foreground text-sm mb-4">
+                  From 2D anatomy diagram → AI analysis → Interactive 3D model with educational annotations
+                </p>
+                <Link to="/convert">
+                  <Button variant="hero" size="lg" className="gap-2">
+                    <ArrowRight className="w-5 h-5" />
+                    Try It Yourself
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-secondary/10 rounded-full blur-[100px]" />
