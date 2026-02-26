@@ -46,6 +46,30 @@ serve(async (req) => {
       .update({ status: "processing" })
       .eq("id", conversionId);
 
+    // Download the image and convert to base64 data URL
+    console.log("Downloading image from:", imageUrl);
+    const imgResponse = await fetch(imageUrl);
+    if (!imgResponse.ok) {
+      throw new Error(`Failed to download image: ${imgResponse.status}`);
+    }
+    const imgBuffer = await imgResponse.arrayBuffer();
+    const imgBytes = new Uint8Array(imgBuffer);
+    
+    // Determine MIME type from URL or response
+    const contentType = imgResponse.headers.get("content-type") || 
+      (imageUrl.endsWith(".png") ? "image/png" : 
+       imageUrl.endsWith(".jpg") || imageUrl.endsWith(".jpeg") ? "image/jpeg" : 
+       imageUrl.endsWith(".webp") ? "image/webp" : "image/png");
+    
+    // Convert to base64
+    let binary = "";
+    for (let i = 0; i < imgBytes.length; i++) {
+      binary += String.fromCharCode(imgBytes[i]);
+    }
+    const base64 = btoa(binary);
+    const dataUrl = `data:${contentType};base64,${base64}`;
+    console.log("Image converted to base64, size:", imgBytes.length, "type:", contentType);
+
     // Use AI to identify the object and determine appropriate 3D shape
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -89,14 +113,7 @@ Shape Types:
 - "kidney": Kidney - will generate bean-shaped with hilum
 - "organ": Generic organic shape for any other anatomy
 
-Position coordinates (x, y) are normalized 0-1 where:
-- x: 0 = left, 1 = right
-- y: 0 = top, 1 = bottom
-
-Include 4-6 educational features with accurate anatomical descriptions.
-For hearts: include chambers, valves, major vessels
-For brains: include lobes, major regions, key structures
-For other organs: include relevant anatomical landmarks`
+Include 4-6 educational features with accurate anatomical descriptions.`
           },
           {
             role: "user",
@@ -107,7 +124,7 @@ For other organs: include relevant anatomical landmarks`
               },
               {
                 type: "image_url",
-                image_url: { url: imageUrl }
+                image_url: { url: dataUrl }
               }
             ]
           }
