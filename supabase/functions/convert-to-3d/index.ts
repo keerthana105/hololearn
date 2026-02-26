@@ -84,15 +84,15 @@ serve(async (req) => {
             role: "system",
             content: `You are a 3D shape identification AI for educational anatomy visualization.
 
-Your task: Analyze the image and identify what 3D shape should be generated.
+Your task: Analyze the image and identify the EXACT anatomical structure shown.
 
-Return ONLY valid JSON (no markdown):
+Return ONLY valid JSON (no markdown, no code blocks):
 {
-  "objectType": "Human Heart" or "Human Brain" or descriptive name,
+  "objectType": "Human Heart" or "Human Brain" or specific descriptive name,
   "shapeType": "heart" | "brain" | "lung" | "kidney" | "organ",
   "geometryParams": {
     "scale": 1.0,
-    "detailLevel": 48,
+    "detailLevel": 64,
     "asymmetry": 0.0
   },
   "features": [
@@ -106,12 +106,19 @@ Return ONLY valid JSON (no markdown):
   ]
 }
 
-Shape Types:
-- "heart": Human heart - will generate parametric heart with chambers, vessels
-- "brain": Human brain - will generate ellipsoid with sulci/gyri texture
-- "lung": Lungs - will generate elongated lobed shapes
-- "kidney": Kidney - will generate bean-shaped with hilum
-- "organ": Generic organic shape for any other anatomy
+CRITICAL SHAPE CLASSIFICATION RULES:
+- If the image shows ANY kind of heart (anatomical, diagram, illustration, sketch) → shapeType MUST be "heart"
+- If the image shows ANY kind of brain (anatomical, diagram, MRI, illustration) → shapeType MUST be "brain"  
+- If the image shows lungs or respiratory system → shapeType MUST be "lung"
+- If the image shows kidneys or renal system → shapeType MUST be "kidney"
+- ONLY use "organ" if the structure is truly unrecognizable as any of the above
+
+Shape Types map to parametric 3D models:
+- "heart": Generates a parametric heart shape with chambers and vessels
+- "brain": Generates an ellipsoid with sulci/gyri wrinkle texture
+- "lung": Generates elongated lobed shapes
+- "kidney": Generates bean-shaped with hilum indentation
+- "organ": Generic organic shape (LAST RESORT ONLY)
 
 Include 4-6 educational features with accurate anatomical descriptions.`
           },
@@ -120,7 +127,7 @@ Include 4-6 educational features with accurate anatomical descriptions.`
             content: [
               {
                 type: "text",
-                text: "Analyze this image. Identify the anatomical structure and return the appropriate shapeType with educational features. Return ONLY valid JSON."
+                text: "Analyze this image carefully. What anatomical structure is shown? Classify it as heart, brain, lung, kidney, or organ. Return ONLY valid JSON with the correct shapeType."
               },
               {
                 type: "image_url",

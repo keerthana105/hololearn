@@ -208,7 +208,7 @@ export default function Index() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 relative">
+      <section id="how-it-works" className="py-24 relative">
         <div className="absolute inset-0 bg-dots opacity-20" />
         
         <div className="container mx-auto px-4 relative z-10">
@@ -297,7 +297,7 @@ export default function Index() {
       </section>
 
       {/* Trust Section */}
-      <section className="py-24">
+      <section id="about" className="py-24">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[

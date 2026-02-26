@@ -52,6 +52,26 @@ export default function Navbar() {
             >
               Convert
             </Link>
+            <a
+              href="#how-it-works"
+              className="text-muted-foreground hover:text-primary transition-colors font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              How It Works
+            </a>
+            <a
+              href="#about"
+              className="text-muted-foreground hover:text-primary transition-colors font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("about")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              About
+            </a>
           </div>
 
           {/* Auth Buttons */}
@@ -123,6 +143,28 @@ export default function Navbar() {
               >
                 Convert
               </Link>
+              <a
+                href="#how-it-works"
+                className="text-muted-foreground hover:text-primary transition-colors py-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                How It Works
+              </a>
+              <a
+                href="#about"
+                className="text-muted-foreground hover:text-primary transition-colors py-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById("about")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                About
+              </a>
               {user ? (
                 <Button variant="outline" onClick={handleSignOut} className="w-full">
                   Sign Out

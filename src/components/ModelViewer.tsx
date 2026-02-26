@@ -42,44 +42,66 @@ function createHeartGeometry(detail: number = 64): THREE.BufferGeometry {
   const latSegments = detail;
   const lonSegments = detail;
   
+  // Use the classic parametric heart surface equation for accurate shape
   for (let lat = 0; lat <= latSegments; lat++) {
     const v = lat / latSegments;
-    const theta = v * Math.PI;
+    const theta = v * Math.PI; // 0 to PI
     
     for (let lon = 0; lon <= lonSegments; lon++) {
       const u = lon / lonSegments;
-      const phi = u * 2 * Math.PI;
+      const phi = u * 2 * Math.PI; // 0 to 2PI
       
+      // Parametric heart equation (improved version)
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
       const sinPhi = Math.sin(phi);
       const cosPhi = Math.cos(phi);
       
+      // Start with a sphere
       let x = sinTheta * cosPhi;
       let y = cosTheta;
       let z = sinTheta * sinPhi;
       
-      const heartFactor = Math.pow(Math.abs(y), 0.3);
-      const indent = y < 0 ? 0.3 * (1 - heartFactor) * Math.pow(Math.cos(phi), 2) : 0;
-      const bulge = y > 0.2 ? 0.2 * Math.pow(1 - y, 2) : 0;
-      
-      if (y < -0.7) {
-        const pointFactor = (-y - 0.7) / 0.3;
-        x *= 1 - pointFactor * 0.8;
-        z *= 1 - pointFactor * 0.8;
-      }
-      
+      // === Heart shaping ===
+      // Top lobes: create the two rounded bumps at the top
       if (y > 0) {
-        const lobeFactor = y * 0.5;
-        const lobeOffset = Math.abs(Math.sin(phi)) * lobeFactor;
-        x *= 1 + lobeOffset * 0.3;
-        z *= 1 + lobeOffset * 0.3;
+        // Split into two lobes by pushing outward based on |cos(phi)|
+        const lobeSep = Math.pow(Math.abs(cosPhi), 0.6) * 0.45 * y;
+        x *= 1 + lobeSep;
+        z *= 1 + lobeSep * 0.5;
+        
+        // Create the center cleft between lobes
+        const cleftDepth = 0.5 * Math.pow(y, 1.5);
+        const cleftWidth = Math.pow(Math.max(0, 1 - Math.abs(cosPhi) * 2.5), 2);
+        // Push inward at center top
+        const r = Math.sqrt(x * x + z * z);
+        if (r > 0) {
+          const shrink = 1 - cleftWidth * cleftDepth;
+          x *= shrink;
+          z *= shrink;
+        }
+        // Also push y down in the cleft
+        y -= cleftWidth * cleftDepth * 0.4;
       }
       
-      if (y > 0.3) {
-        const cleftDepth = 0.4 * Math.pow((y - 0.3) / 0.7, 2);
-        const cleftWidth = Math.pow(Math.cos(phi), 4);
-        x -= cleftWidth * cleftDepth * Math.sign(x) * 0.5;
+      // Bottom: taper to a point
+      if (y < -0.2) {
+        const pointFactor = Math.pow((-y - 0.2) / 0.8, 1.2);
+        const taper = Math.max(0, 1 - pointFactor * 0.92);
+        x *= taper;
+        z *= taper;
+      }
+      
+      // Widen the midsection slightly for organic feel
+      if (y > -0.3 && y < 0.3) {
+        const bulgeFactor = 1 + 0.12 * (1 - Math.pow(y / 0.3, 2));
+        x *= bulgeFactor;
+        z *= bulgeFactor;
+      }
+      
+      // Front-back asymmetry: slightly flatter in back
+      if (sinPhi < 0) {
+        z *= 0.85;
       }
       
       const scale = 1.8;
@@ -751,6 +773,7 @@ function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerPr
 
 export default function ModelViewer({ modelData }: ModelViewerProps) {
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const [featurePanelOpen, setFeaturePanelOpen] = useState(false);
   const features = modelData?.features ?? [];
   const objectType = modelData?.objectType;
   const shapeType = modelData?.shapeType || 'organic';
@@ -769,10 +792,10 @@ export default function ModelViewer({ modelData }: ModelViewerProps) {
         />
       </Canvas>
       
-      {/* Feature Panel */}
+      {/* Feature Panel - Collapsible */}
       {features.length > 0 && (
         <div 
-          className="absolute top-4 left-4 rounded-xl p-4 max-w-[220px]"
+          className="absolute top-4 left-4 rounded-xl max-w-[220px] z-10"
           style={{
             background: 'rgba(5, 10, 24, 0.85)',
             backdropFilter: 'blur(12px)',
@@ -780,38 +803,58 @@ export default function ModelViewer({ modelData }: ModelViewerProps) {
             boxShadow: '0 0 30px rgba(0, 212, 255, 0.1)'
           }}
         >
-          <h3 
-            className="text-xs font-semibold mb-1 uppercase tracking-wider"
-            style={{ color: '#00d4ff' }}
+          <button
+            onClick={() => setFeaturePanelOpen(!featurePanelOpen)}
+            className="w-full flex items-center justify-between p-3 rounded-xl"
           >
-            {objectType || "Features"}
-          </h3>
-          <p className="text-[10px] mb-3" style={{ color: 'rgba(150, 180, 220, 0.7)' }}>
-            Click markers to explore
-          </p>
-          <div className="space-y-1 max-h-[300px] overflow-y-auto">
-            {features.map((feature) => (
-              <button
-                key={feature.id}
-                onClick={() => setSelectedFeature(selectedFeature === feature.id ? null : feature.id)}
-                className="w-full text-left text-xs px-2 py-1.5 rounded-lg transition-all flex items-center gap-2"
-                style={{
-                  background: selectedFeature === feature.id ? 'rgba(0, 212, 255, 0.15)' : 'transparent',
-                  color: selectedFeature === feature.id ? '#00d4ff' : 'rgba(180, 200, 230, 0.7)',
-                  border: selectedFeature === feature.id ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent'
-                }}
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#00d4ff', boxShadow: '0 0 6px #00d4ff' }} />
+              <h3 
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: '#00d4ff' }}
               >
-                <span 
-                  className="w-2 h-2 rounded-full flex-shrink-0" 
-                  style={{ 
-                    backgroundColor: feature.color || "#00d4ff",
-                    boxShadow: `0 0 6px ${feature.color || '#00d4ff'}`
-                  }}
-                />
-                <span className="truncate">{feature.name}</span>
-              </button>
-            ))}
-          </div>
+                {objectType || "Features"}
+              </h3>
+            </div>
+            <svg
+              className="w-3.5 h-3.5 transition-transform"
+              style={{ color: '#00d4ff', transform: featurePanelOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {featurePanelOpen && (
+            <div className="px-3 pb-3">
+              <p className="text-[10px] mb-2" style={{ color: 'rgba(150, 180, 220, 0.7)' }}>
+                Click markers to explore
+              </p>
+              <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                {features.map((feature) => (
+                  <button
+                    key={feature.id}
+                    onClick={() => setSelectedFeature(selectedFeature === feature.id ? null : feature.id)}
+                    className="w-full text-left text-xs px-2 py-1.5 rounded-lg transition-all flex items-center gap-2"
+                    style={{
+                      background: selectedFeature === feature.id ? 'rgba(0, 212, 255, 0.15)' : 'transparent',
+                      color: selectedFeature === feature.id ? '#00d4ff' : 'rgba(180, 200, 230, 0.7)',
+                      border: selectedFeature === feature.id ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent'
+                    }}
+                  >
+                    <span 
+                      className="w-2 h-2 rounded-full flex-shrink-0" 
+                      style={{ 
+                        backgroundColor: feature.color || "#00d4ff",
+                        boxShadow: `0 0 6px ${feature.color || '#00d4ff'}`
+                      }}
+                    />
+                    <span className="truncate">{feature.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       
