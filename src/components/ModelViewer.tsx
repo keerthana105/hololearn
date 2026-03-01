@@ -15,6 +15,8 @@ interface GeometryParams {
   scale?: number;
   detailLevel?: number;
   asymmetry?: number;
+  depthMultiplier?: number;
+  aspectRatio?: number[];
 }
 
 interface ModelViewerProps {
@@ -558,16 +560,213 @@ function FeatureHotspot3D({ feature, shapeType, isSelected, onSelect }: FeatureH
   );
 }
 
-// =============== VOLUMETRIC 3D MODEL ===============
+// =============== DEPTH-DISPLACED 3D MODEL ===============
+
+function createDepthDisplacedGeometry(
+  depthGrid: number[][],
+  baseShapeType: string,
+  depthMultiplier: number = 1.5,
+  aspectRatio: number[] = [1, 1, 0.5],
+  detail: number = 64
+): THREE.BufferGeometry {
+  // If we have a known anatomy shape AND a depth grid, combine them
+  // For "relief" or unknown shapes, create a displaced plane/sphere from depth
+  
+  if (baseShapeType === "relief" || baseShapeType === "sphere" || baseShapeType === "box" || baseShapeType === "cylinder") {
+    // Create a depth-displaced surface from the grid
+    return createReliefGeometry(depthGrid, depthMultiplier, aspectRatio, detail);
+  }
+  
+  // For anatomy types, use parametric shape but apply depth displacement
+  let baseGeometry: THREE.BufferGeometry;
+  switch (baseShapeType.toLowerCase()) {
+    case 'heart': baseGeometry = createHeartGeometry(detail); break;
+    case 'brain': baseGeometry = createBrainGeometry(detail); break;
+    case 'lung': case 'lungs': baseGeometry = createLungGeometry(detail, false); break;
+    case 'kidney': baseGeometry = createKidneyGeometry(detail); break;
+    default: baseGeometry = createOrganicGeometry(detail);
+  }
+
+  // Apply depth grid as displacement to the parametric shape
+  if (depthGrid && depthGrid.length > 0) {
+    applyDepthDisplacement(baseGeometry, depthGrid, depthMultiplier * 0.3);
+  }
+  
+  baseGeometry.computeVertexNormals();
+  return baseGeometry;
+}
+
+function createReliefGeometry(
+  depthGrid: number[][],
+  depthMultiplier: number,
+  aspectRatio: number[],
+  detail: number
+): THREE.BufferGeometry {
+  const rows = depthGrid.length;
+  const cols = depthGrid[0]?.length || rows;
+  const segX = Math.max(detail, cols * 4);
+  const segY = Math.max(detail, rows * 4);
+  
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  
+  const scaleX = (aspectRatio[0] || 1) * 2.5;
+  const scaleY = (aspectRatio[1] || 1) * 2.5;
+  const scaleZ = (aspectRatio[2] || 0.5) * depthMultiplier;
+  
+  for (let iy = 0; iy <= segY; iy++) {
+    const v = iy / segY;
+    for (let ix = 0; ix <= segX; ix++) {
+      const u = ix / segX;
+      
+      // Sample depth from grid with bilinear interpolation
+      const depth = sampleDepthGrid(depthGrid, u, v);
+      
+      // Create a curved surface (slightly spherical base + depth displacement)
+      const cx = (u - 0.5) * 2; // -1 to 1
+      const cy = (v - 0.5) * 2;
+      const baseCurve = 0.3 * (1 - cx * cx - cy * cy); // slight dome shape
+      
+      const x = (u - 0.5) * scaleX;
+      const y = (0.5 - v) * scaleY;
+      const z = (depth * scaleZ) + baseCurve;
+      
+      vertices.push(x, y, z);
+      uvs.push(u, 1 - v);
+      normals.push(0, 0, 1); // Will be recomputed
+    }
+  }
+  
+  // Also create the back face for thickness
+  const frontVertCount = vertices.length / 3;
+  for (let iy = 0; iy <= segY; iy++) {
+    const v = iy / segY;
+    for (let ix = 0; ix <= segX; ix++) {
+      const u = ix / segX;
+      const idx = iy * (segX + 1) + ix;
+      const x = vertices[idx * 3];
+      const y = vertices[idx * 3 + 1];
+      const z = -0.15; // Flat back
+      
+      vertices.push(x, y, z);
+      uvs.push(u, 1 - v);
+      normals.push(0, 0, -1);
+    }
+  }
+  
+  // Front face indices
+  for (let iy = 0; iy < segY; iy++) {
+    for (let ix = 0; ix < segX; ix++) {
+      const a = iy * (segX + 1) + ix;
+      const b = a + 1;
+      const c = a + (segX + 1);
+      const d = c + 1;
+      indices.push(a, c, b);
+      indices.push(b, c, d);
+    }
+  }
+  
+  // Back face indices (reversed winding)
+  for (let iy = 0; iy < segY; iy++) {
+    for (let ix = 0; ix < segX; ix++) {
+      const a = frontVertCount + iy * (segX + 1) + ix;
+      const b = a + 1;
+      const c = a + (segX + 1);
+      const d = c + 1;
+      indices.push(a, b, c);
+      indices.push(b, d, c);
+    }
+  }
+  
+  // Side edges to connect front and back
+  // Top edge
+  for (let ix = 0; ix < segX; ix++) {
+    const f1 = ix;
+    const f2 = ix + 1;
+    const b1 = frontVertCount + ix;
+    const b2 = frontVertCount + ix + 1;
+    indices.push(f1, f2, b1);
+    indices.push(f2, b2, b1);
+  }
+  // Bottom edge
+  for (let ix = 0; ix < segX; ix++) {
+    const f1 = segY * (segX + 1) + ix;
+    const f2 = f1 + 1;
+    const b1 = frontVertCount + segY * (segX + 1) + ix;
+    const b2 = b1 + 1;
+    indices.push(f1, b1, f2);
+    indices.push(f2, b1, b2);
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  
+  return geometry;
+}
+
+function sampleDepthGrid(grid: number[][], u: number, v: number): number {
+  const rows = grid.length;
+  const cols = grid[0]?.length || 1;
+  
+  const gx = u * (cols - 1);
+  const gy = v * (rows - 1);
+  
+  const x0 = Math.floor(gx);
+  const y0 = Math.floor(gy);
+  const x1 = Math.min(x0 + 1, cols - 1);
+  const y1 = Math.min(y0 + 1, rows - 1);
+  
+  const fx = gx - x0;
+  const fy = gy - y0;
+  
+  const v00 = grid[y0]?.[x0] ?? 0.5;
+  const v10 = grid[y0]?.[x1] ?? 0.5;
+  const v01 = grid[y1]?.[x0] ?? 0.5;
+  const v11 = grid[y1]?.[x1] ?? 0.5;
+  
+  return v00 * (1 - fx) * (1 - fy) + v10 * fx * (1 - fy) + v01 * (1 - fx) * fy + v11 * fx * fy;
+}
+
+function applyDepthDisplacement(geometry: THREE.BufferGeometry, depthGrid: number[][], strength: number) {
+  const pos = geometry.getAttribute('position');
+  const uv = geometry.getAttribute('uv');
+  const normal = geometry.getAttribute('normal');
+  
+  if (!pos || !uv || !normal) return;
+  
+  for (let i = 0; i < pos.count; i++) {
+    const u = uv.getX(i);
+    const v = uv.getY(i);
+    const depth = sampleDepthGrid(depthGrid, u, v);
+    const displacement = (depth - 0.5) * strength;
+    
+    pos.setX(i, pos.getX(i) + normal.getX(i) * displacement);
+    pos.setY(i, pos.getY(i) + normal.getY(i) * displacement);
+    pos.setZ(i, pos.getZ(i) + normal.getZ(i) * displacement);
+  }
+  
+  pos.needsUpdate = true;
+}
+
+// =============== VOLUMETRIC 3D MODEL (Updated) ===============
 
 interface Volumetric3DModelProps {
   shapeType: string;
   imageUrl?: string;
   scale?: number;
   detailLevel?: number;
+  depthGrid?: number[][];
+  depthMultiplier?: number;
+  aspectRatio?: number[];
 }
 
-function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 48 }: Volumetric3DModelProps) {
+function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 64, depthGrid, depthMultiplier = 1.5, aspectRatio = [1, 1, 0.5] }: Volumetric3DModelProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   
@@ -581,41 +780,32 @@ function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 48 }:
           loadedTexture.colorSpace = THREE.SRGBColorSpace;
           loadedTexture.minFilter = THREE.LinearFilter;
           loadedTexture.magFilter = THREE.LinearFilter;
-          loadedTexture.wrapS = THREE.RepeatWrapping;
-          loadedTexture.wrapT = THREE.RepeatWrapping;
+          loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
+          loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
           setTexture(loadedTexture);
         },
         undefined,
-        (error) => {
-          console.error('Error loading texture:', error);
-        }
+        (error) => console.error('Error loading texture:', error)
       );
     }
   }, [imageUrl]);
   
   const geometry = useMemo(() => {
-    const detail = detailLevel;
-    
-    switch (shapeType.toLowerCase()) {
-      case 'heart':
-        return createHeartGeometry(detail);
-      case 'brain':
-        return createBrainGeometry(detail);
-      case 'lung':
-      case 'lungs':
-        return createLungGeometry(detail, false);
-      case 'kidney':
-        return createKidneyGeometry(detail);
-      case 'organ':
-      case 'organic':
-      case 'circular':
-      case 'irregular':
-      default:
-        return createOrganicGeometry(detail);
+    if (depthGrid && depthGrid.length > 0) {
+      return createDepthDisplacedGeometry(depthGrid, shapeType, depthMultiplier, aspectRatio, detailLevel);
     }
-  }, [shapeType, detailLevel]);
+    
+    // Fallback to parametric shapes
+    switch (shapeType.toLowerCase()) {
+      case 'heart': return createHeartGeometry(detailLevel);
+      case 'brain': return createBrainGeometry(detailLevel);
+      case 'lung': case 'lungs': return createLungGeometry(detailLevel, false);
+      case 'kidney': return createKidneyGeometry(detailLevel);
+      default: return createOrganicGeometry(detailLevel);
+    }
+  }, [shapeType, detailLevel, depthGrid, depthMultiplier, aspectRatio]);
 
-  // Auto-scale: compute bounding box and normalize
+  // Auto-scale
   useEffect(() => {
     if (meshRef.current) {
       const box = new THREE.Box3().setFromObject(meshRef.current);
@@ -623,11 +813,9 @@ function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 48 }:
       box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z);
       if (maxDim > 0) {
-        const targetSize = 3.0; // fit within 3 units
-        const normalizeScale = targetSize / maxDim;
+        const normalizeScale = 3.0 / maxDim;
         meshRef.current.scale.setScalar(normalizeScale * scale);
       }
-      // Center the model
       const center = new THREE.Vector3();
       box.getCenter(center);
       meshRef.current.position.sub(center);
@@ -639,10 +827,10 @@ function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 48 }:
       {texture ? (
         <meshStandardMaterial
           map={texture}
-          metalness={0.15}
-          roughness={0.5}
+          metalness={0.1}
+          roughness={0.6}
           side={THREE.DoubleSide}
-          envMapIntensity={0.8}
+          envMapIntensity={1.0}
         />
       ) : (
         <meshStandardMaterial
@@ -655,6 +843,7 @@ function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 48 }:
     </mesh>
   );
 }
+
 
 // =============== GLOW RING EFFECT ===============
 
@@ -688,9 +877,12 @@ function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerPr
 
   const shapeType = modelData.shapeType || 'organic';
   const scale = modelData.geometryParams?.scale || modelData.scale || 1.0;
-  const detailLevel = modelData.geometryParams?.detailLevel || 48;
+  const detailLevel = modelData.geometryParams?.detailLevel || 64;
   const features = modelData.features ?? [];
   const objectType = modelData.objectType || 'Model';
+  const depthGrid = modelData.depthGrid;
+  const depthMultiplier = modelData.geometryParams?.depthMultiplier || modelData.depthMultiplier || 1.5;
+  const aspectRatio = modelData.geometryParams?.aspectRatio || [1, 1, 0.5];
 
   return (
     <>
@@ -700,7 +892,7 @@ function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerPr
       <Stars radius={50} depth={50} count={2000} factor={3} saturation={0.5} fade speed={1} />
       
       {/* Lighting - dramatic, cinematic */}
-      <ambientLight intensity={0.3} />
+      <ambientLight intensity={0.4} />
       <directionalLight
         position={[3, 5, 3]}
         intensity={1.5}
@@ -755,6 +947,9 @@ function Scene({ modelData, selectedFeature, setSelectedFeature }: ModelViewerPr
             imageUrl={modelData.originalImageUrl}
             scale={scale}
             detailLevel={detailLevel}
+            depthGrid={depthGrid}
+            depthMultiplier={depthMultiplier}
+            aspectRatio={aspectRatio}
           />
           
           {/* Feature Hotspots */}
