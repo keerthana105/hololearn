@@ -19,13 +19,8 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase configuration missing");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase configuration missing");
 
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
@@ -33,44 +28,24 @@ serve(async (req) => {
     conversionId = body.conversionId;
     const imageUrl = body.imageUrl;
     
-    if (!conversionId || !imageUrl) {
-      throw new Error("Missing required fields: conversionId and imageUrl");
-    }
+    if (!conversionId || !imageUrl) throw new Error("Missing required fields: conversionId and imageUrl");
     
     console.log("=== STARTING 3D CONVERSION ===");
-    console.log("Conversion ID:", conversionId);
 
-    // Update status to processing
-    await supabase
-      .from("conversions")
-      .update({ status: "processing" })
-      .eq("id", conversionId);
+    await supabase.from("conversions").update({ status: "processing" }).eq("id", conversionId);
 
-    // Download the image and convert to base64 data URL
-    console.log("Downloading image from:", imageUrl);
+    // Download and convert image to base64
     const imgResponse = await fetch(imageUrl);
-    if (!imgResponse.ok) {
-      throw new Error(`Failed to download image: ${imgResponse.status}`);
-    }
+    if (!imgResponse.ok) throw new Error(`Failed to download image: ${imgResponse.status}`);
     const imgBuffer = await imgResponse.arrayBuffer();
     const imgBytes = new Uint8Array(imgBuffer);
     
-    // Determine MIME type from URL or response
-    const contentType = imgResponse.headers.get("content-type") || 
-      (imageUrl.endsWith(".png") ? "image/png" : 
-       imageUrl.endsWith(".jpg") || imageUrl.endsWith(".jpeg") ? "image/jpeg" : 
-       imageUrl.endsWith(".webp") ? "image/webp" : "image/png");
-    
-    // Convert to base64
+    const contentType = imgResponse.headers.get("content-type") || "image/png";
     let binary = "";
-    for (let i = 0; i < imgBytes.length; i++) {
-      binary += String.fromCharCode(imgBytes[i]);
-    }
-    const base64 = btoa(binary);
-    const dataUrl = `data:${contentType};base64,${base64}`;
-    console.log("Image converted to base64, size:", imgBytes.length, "type:", contentType);
+    for (let i = 0; i < imgBytes.length; i++) binary += String.fromCharCode(imgBytes[i]);
+    const dataUrl = `data:${contentType};base64,${btoa(binary)}`;
 
-    // Use AI to identify the object and determine appropriate 3D shape
+    // Step 1: Classify the image and generate a depth grid
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -82,57 +57,65 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a 3D shape identification AI for educational anatomy visualization.
+            content: `You are a 3D model generation AI. Analyze the uploaded image and generate data for creating a 3D model.
 
-Your task: Analyze the image and identify the EXACT anatomical structure shown.
+CRITICAL: Return ONLY valid JSON (no markdown, no code blocks, no extra text).
 
-Return ONLY valid JSON (no markdown, no code blocks):
+Your response format:
 {
-  "objectType": "Human Heart" or "Human Brain" or specific descriptive name,
-  "shapeType": "heart" | "brain" | "lung" | "kidney" | "organ",
+  "objectType": "Descriptive name of the object (e.g., Human Heart, Golden Retriever, Sports Car)",
+  "category": "anatomy" | "animal" | "vehicle" | "object" | "architecture" | "nature" | "food" | "other",
+  "shapeType": "heart" | "brain" | "lung" | "kidney" | "sphere" | "cylinder" | "box" | "relief",
   "geometryParams": {
     "scale": 1.0,
     "detailLevel": 64,
-    "asymmetry": 0.0
+    "depthMultiplier": 1.5,
+    "aspectRatio": [1.0, 1.0, 0.5]
   },
+  "depthGrid": [[0.5, 0.6, ...], ...],
   "features": [
     {
       "id": "unique_id",
       "name": "Feature Name",
-      "description": "Educational description of this anatomical feature",
+      "description": "Educational/descriptive text about this part",
       "position": { "x": 0.5, "y": 0.5 },
       "color": "#00d4ff"
     }
   ]
 }
 
-CRITICAL SHAPE CLASSIFICATION RULES:
-- If the image shows ANY kind of heart (anatomical, diagram, illustration, sketch) → shapeType MUST be "heart"
-- If the image shows ANY kind of brain (anatomical, diagram, MRI, illustration) → shapeType MUST be "brain"  
-- If the image shows lungs or respiratory system → shapeType MUST be "lung"
-- If the image shows kidneys or renal system → shapeType MUST be "kidney"
-- ONLY use "organ" if the structure is truly unrecognizable as any of the above
+SHAPE TYPE RULES:
+- Heart (anatomical) → "heart"
+- Brain → "brain"
+- Lungs → "lung"  
+- Kidney → "kidney"
+- Round/spherical objects → "sphere"
+- Tall/elongated objects → "cylinder"
+- Boxy/rectangular objects → "box"
+- Everything else (flat images, photos, artwork) → "relief"
 
-Shape Types map to parametric 3D models:
-- "heart": Generates a parametric heart shape with chambers and vessels
-- "brain": Generates an ellipsoid with sulci/gyri wrinkle texture
-- "lung": Generates elongated lobed shapes
-- "kidney": Generates bean-shaped with hilum indentation
-- "organ": Generic organic shape (LAST RESORT ONLY)
+DEPTH GRID RULES:
+- Generate a 16x16 grid of depth values between 0.0 and 1.0
+- 0.0 = closest to viewer (foreground), 1.0 = farthest (background)
+- The grid should represent the actual depth/shape of the object in the image
+- For anatomy: map the 3D structure (e.g., heart chambers bulge forward)
+- For flat images: create a subtle relief effect based on content
+- For objects: estimate the 3D depth from the 2D view
+- Each row is an array of 16 floats
 
-Include 4-6 educational features with accurate anatomical descriptions.`
+FEATURES:
+- Include 4-6 labeled features with accurate descriptions
+- For anatomy: use medical/educational descriptions
+- For other objects: describe key parts/components
+- Position is normalized 0-1 (x=left-right, y=top-bottom)
+
+Be accurate with the depth grid - it directly controls the 3D shape quality.`
           },
           {
             role: "user",
             content: [
-              {
-                type: "text",
-                text: "Analyze this image carefully. What anatomical structure is shown? Classify it as heart, brain, lung, kidney, or organ. Return ONLY valid JSON with the correct shapeType."
-              },
-              {
-                type: "image_url",
-                image_url: { url: dataUrl }
-              }
+              { type: "text", text: "Analyze this image. Generate the depth grid, classify it, and create feature annotations. Return ONLY valid JSON." },
+              { type: "image_url", image_url: { url: dataUrl } }
             ]
           }
         ],
@@ -142,103 +125,93 @@ Include 4-6 educational features with accurate anatomical descriptions.`
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI Gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again in a moment.");
-      }
-      if (response.status === 402) {
-        throw new Error("API credits depleted.");
-      }
+      if (response.status === 429) throw new Error("Rate limit exceeded. Please try again in a moment.");
+      if (response.status === 402) throw new Error("API credits depleted.");
       throw new Error(`AI processing failed: ${response.status}`);
     }
 
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content;
-    
-    console.log("AI Response received");
 
-    // Parse AI response or use defaults
     let aiResult: any = {};
     try {
       let jsonStr = content || "{}";
       const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1];
-      }
-      // Clean up any trailing content after JSON
+      if (jsonMatch) jsonStr = jsonMatch[1];
       const lastBrace = jsonStr.lastIndexOf("}");
-      if (lastBrace !== -1) {
-        jsonStr = jsonStr.substring(0, lastBrace + 1);
-      }
+      if (lastBrace !== -1) jsonStr = jsonStr.substring(0, lastBrace + 1);
       aiResult = JSON.parse(jsonStr.trim());
-      console.log("Parsed AI result:", aiResult.objectType, "Shape:", aiResult.shapeType);
+      console.log("Parsed AI result:", aiResult.objectType, "Shape:", aiResult.shapeType, "Category:", aiResult.category);
     } catch (e) {
-      console.log("Using default shape due to parse error");
+      console.log("Parse error, using defaults");
       aiResult = {
         objectType: "3D Model",
-        shapeType: "organ",
-        geometryParams: { scale: 1.0, detailLevel: 48 },
+        category: "other",
+        shapeType: "relief",
+        geometryParams: { scale: 1.0, detailLevel: 48, depthMultiplier: 1.0 },
+        depthGrid: generateDefaultDepthGrid(),
         features: []
       };
     }
 
-    // Build model data with shape-based approach (no depth grid needed)
-    const shapeType = aiResult.shapeType || "organ";
-    const features = aiResult.features?.length > 0 ? aiResult.features : getDefaultFeatures(shapeType);
+    // Validate and fix depth grid
+    let depthGrid = aiResult.depthGrid;
+    if (!Array.isArray(depthGrid) || depthGrid.length < 4) {
+      depthGrid = generateDefaultDepthGrid();
+    } else {
+      // Ensure all values are valid numbers between 0-1
+      depthGrid = depthGrid.map((row: any) => {
+        if (!Array.isArray(row)) return new Array(16).fill(0.5);
+        return row.map((v: any) => {
+          const n = Number(v);
+          return isNaN(n) ? 0.5 : Math.max(0, Math.min(1, n));
+        });
+      });
+    }
+
+    const shapeType = aiResult.shapeType || "relief";
+    const features = aiResult.features?.length > 0 ? aiResult.features : getDefaultFeatures(shapeType, aiResult.category);
     
     const modelData = {
       shapeType,
+      category: aiResult.category || "other",
       objectType: aiResult.objectType || "3D Model",
       geometryParams: {
         scale: aiResult.geometryParams?.scale || 1.0,
-        detailLevel: aiResult.geometryParams?.detailLevel || 48,
-        asymmetry: aiResult.geometryParams?.asymmetry || 0
+        detailLevel: aiResult.geometryParams?.detailLevel || 64,
+        depthMultiplier: aiResult.geometryParams?.depthMultiplier || 1.5,
+        aspectRatio: aiResult.geometryParams?.aspectRatio || [1, 1, 0.5],
       },
+      depthGrid,
       features,
       originalImageUrl: imageUrl,
       processedAt: new Date().toISOString()
     };
 
-    console.log("Saving model - Shape:", shapeType, "Features:", features.length);
+    console.log("Saving model - Shape:", shapeType, "DepthGrid:", depthGrid.length, "x", depthGrid[0]?.length, "Features:", features.length);
 
-    // Save to database
     const { error: updateError } = await supabase
       .from("conversions")
-      .update({
-        model_data: modelData,
-        status: "completed",
-      })
+      .update({ model_data: modelData, status: "completed" })
       .eq("id", conversionId);
 
-    if (updateError) {
-      console.error("Database update error (non-fatal):", updateError);
-      // Still return the model data even if DB save fails
-    }
+    if (updateError) console.error("Database update error:", updateError);
 
     console.log("=== CONVERSION COMPLETED ===");
-
-    return new Response(
-      JSON.stringify({ success: true, modelData }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, modelData }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
 
   } catch (error) {
     console.error("Error:", error instanceof Error ? error.message : error);
-    
     if (conversionId && supabase) {
       try {
-        await supabase
-          .from("conversions")
-          .update({ 
-            status: "failed",
-            error_message: error instanceof Error ? error.message : "Unknown error"
-          })
-          .eq("id", conversionId);
-      } catch (e) {
-        console.error("Failed to update status:", e);
-      }
+        await supabase.from("conversions").update({ 
+          status: "failed",
+          error_message: error instanceof Error ? error.message : "Unknown error"
+        }).eq("id", conversionId);
+      } catch (e) { console.error("Failed to update status:", e); }
     }
-
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -246,50 +219,61 @@ Include 4-6 educational features with accurate anatomical descriptions.`
   }
 });
 
-function getDefaultFeatures(shapeType: string) {
+function generateDefaultDepthGrid(): number[][] {
+  const size = 16;
+  const grid: number[][] = [];
+  for (let y = 0; y < size; y++) {
+    const row: number[] = [];
+    for (let x = 0; x < size; x++) {
+      const cx = (x / (size - 1)) * 2 - 1;
+      const cy = (y / (size - 1)) * 2 - 1;
+      const dist = Math.sqrt(cx * cx + cy * cy);
+      row.push(Math.max(0, 1 - dist));
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
+function getDefaultFeatures(shapeType: string, category?: string) {
   switch (shapeType) {
     case "heart":
       return [
-        { id: "ra", name: "Right Atrium", description: "Upper right chamber that receives deoxygenated blood from the body via the superior and inferior vena cava.", position: { x: 0.7, y: 0.35 }, color: "#3b82f6" },
-        { id: "la", name: "Left Atrium", description: "Upper left chamber that receives oxygenated blood from the lungs via the pulmonary veins.", position: { x: 0.3, y: 0.35 }, color: "#ef4444" },
-        { id: "rv", name: "Right Ventricle", description: "Lower right chamber that pumps deoxygenated blood to the lungs through the pulmonary artery.", position: { x: 0.65, y: 0.65 }, color: "#6366f1" },
-        { id: "lv", name: "Left Ventricle", description: "The most muscular chamber, pumps oxygenated blood to the entire body through the aorta.", position: { x: 0.35, y: 0.65 }, color: "#dc2626" },
-        { id: "aorta", name: "Aorta", description: "The largest artery in the body, carries oxygenated blood from the left ventricle to the rest of the body.", position: { x: 0.5, y: 0.15 }, color: "#f59e0b" }
+        { id: "ra", name: "Right Atrium", description: "Receives deoxygenated blood from the body via the vena cava.", position: { x: 0.7, y: 0.35 }, color: "#3b82f6" },
+        { id: "la", name: "Left Atrium", description: "Receives oxygenated blood from the lungs via pulmonary veins.", position: { x: 0.3, y: 0.35 }, color: "#ef4444" },
+        { id: "rv", name: "Right Ventricle", description: "Pumps deoxygenated blood to the lungs through the pulmonary artery.", position: { x: 0.65, y: 0.65 }, color: "#6366f1" },
+        { id: "lv", name: "Left Ventricle", description: "The most muscular chamber, pumps oxygenated blood to the entire body.", position: { x: 0.35, y: 0.65 }, color: "#dc2626" },
+        { id: "aorta", name: "Aorta", description: "The largest artery, carries oxygenated blood from the left ventricle.", position: { x: 0.5, y: 0.15 }, color: "#f59e0b" }
       ];
-    
     case "brain":
       return [
-        { id: "frontal", name: "Frontal Lobe", description: "Controls executive functions, decision making, problem solving, and voluntary movement.", position: { x: 0.5, y: 0.25 }, color: "#8b5cf6" },
-        { id: "parietal", name: "Parietal Lobe", description: "Processes sensory information including touch, temperature, and spatial awareness.", position: { x: 0.5, y: 0.45 }, color: "#06b6d4" },
-        { id: "temporal", name: "Temporal Lobe", description: "Processes auditory information, memory formation, and language comprehension.", position: { x: 0.2, y: 0.55 }, color: "#10b981" },
-        { id: "occipital", name: "Occipital Lobe", description: "Primary visual processing center, interprets information from the eyes.", position: { x: 0.5, y: 0.75 }, color: "#f43f5e" },
-        { id: "cerebellum", name: "Cerebellum", description: "Coordinates voluntary movements, balance, posture, and motor learning.", position: { x: 0.5, y: 0.9 }, color: "#eab308" }
+        { id: "frontal", name: "Frontal Lobe", description: "Controls executive functions, decision making, and voluntary movement.", position: { x: 0.5, y: 0.25 }, color: "#8b5cf6" },
+        { id: "parietal", name: "Parietal Lobe", description: "Processes sensory information including touch and spatial awareness.", position: { x: 0.5, y: 0.45 }, color: "#06b6d4" },
+        { id: "temporal", name: "Temporal Lobe", description: "Processes auditory information, memory, and language.", position: { x: 0.2, y: 0.55 }, color: "#10b981" },
+        { id: "occipital", name: "Occipital Lobe", description: "Primary visual processing center.", position: { x: 0.5, y: 0.75 }, color: "#f43f5e" },
+        { id: "cerebellum", name: "Cerebellum", description: "Coordinates balance, posture, and motor learning.", position: { x: 0.5, y: 0.9 }, color: "#eab308" }
       ];
-    
-    case "lung":
-    case "lungs":
+    case "lung": case "lungs":
       return [
-        { id: "upper_right", name: "Right Upper Lobe", description: "The uppermost section of the right lung, separated by the horizontal fissure.", position: { x: 0.7, y: 0.25 }, color: "#60a5fa" },
-        { id: "middle_right", name: "Right Middle Lobe", description: "Unique to the right lung, located between the horizontal and oblique fissures.", position: { x: 0.7, y: 0.5 }, color: "#34d399" },
-        { id: "lower_right", name: "Right Lower Lobe", description: "The largest lobe of the right lung, extends to the base of the lung.", position: { x: 0.7, y: 0.75 }, color: "#a78bfa" },
-        { id: "upper_left", name: "Left Upper Lobe", description: "Contains the cardiac notch to accommodate the heart.", position: { x: 0.3, y: 0.3 }, color: "#f472b6" },
-        { id: "lower_left", name: "Left Lower Lobe", description: "The lower portion of the left lung, separated by the oblique fissure.", position: { x: 0.3, y: 0.7 }, color: "#fbbf24" }
+        { id: "upper_right", name: "Right Upper Lobe", description: "Uppermost section of the right lung.", position: { x: 0.7, y: 0.25 }, color: "#60a5fa" },
+        { id: "middle_right", name: "Right Middle Lobe", description: "Between horizontal and oblique fissures.", position: { x: 0.7, y: 0.5 }, color: "#34d399" },
+        { id: "lower_right", name: "Right Lower Lobe", description: "Extends to the base of the lung.", position: { x: 0.7, y: 0.75 }, color: "#a78bfa" },
+        { id: "upper_left", name: "Left Upper Lobe", description: "Contains the cardiac notch.", position: { x: 0.3, y: 0.3 }, color: "#f472b6" },
+        { id: "lower_left", name: "Left Lower Lobe", description: "Separated by the oblique fissure.", position: { x: 0.3, y: 0.7 }, color: "#fbbf24" }
       ];
-    
     case "kidney":
       return [
-        { id: "cortex", name: "Renal Cortex", description: "The outer region containing glomeruli and convoluted tubules for initial blood filtration.", position: { x: 0.3, y: 0.5 }, color: "#ef4444" },
-        { id: "medulla", name: "Renal Medulla", description: "Contains the renal pyramids and loops of Henle, concentrates urine.", position: { x: 0.5, y: 0.5 }, color: "#f97316" },
-        { id: "pelvis", name: "Renal Pelvis", description: "Funnel-shaped structure that collects urine and channels it to the ureter.", position: { x: 0.7, y: 0.5 }, color: "#eab308" },
-        { id: "hilum", name: "Hilum", description: "The indentation where blood vessels, nerves, and ureter enter/exit the kidney.", position: { x: 0.85, y: 0.5 }, color: "#22c55e" }
+        { id: "cortex", name: "Renal Cortex", description: "Outer region for initial blood filtration.", position: { x: 0.3, y: 0.5 }, color: "#ef4444" },
+        { id: "medulla", name: "Renal Medulla", description: "Contains pyramids and loops of Henle.", position: { x: 0.5, y: 0.5 }, color: "#f97316" },
+        { id: "pelvis", name: "Renal Pelvis", description: "Collects urine and channels it to the ureter.", position: { x: 0.7, y: 0.5 }, color: "#eab308" },
+        { id: "hilum", name: "Hilum", description: "Where blood vessels and ureter enter/exit.", position: { x: 0.85, y: 0.5 }, color: "#22c55e" }
       ];
-    
     default:
       return [
-        { id: "center", name: "Central Region", description: "The main focal point of the anatomical structure.", position: { x: 0.5, y: 0.5 }, color: "#00d4ff" },
-        { id: "superior", name: "Superior Area", description: "The upper portion of the structure.", position: { x: 0.5, y: 0.25 }, color: "#7c3aed" },
-        { id: "inferior", name: "Inferior Area", description: "The lower portion of the structure.", position: { x: 0.5, y: 0.75 }, color: "#10b981" },
-        { id: "lateral", name: "Lateral Region", description: "The side portions of the structure.", position: { x: 0.25, y: 0.5 }, color: "#f59e0b" }
+        { id: "center", name: "Center", description: "The main focal point of the subject.", position: { x: 0.5, y: 0.5 }, color: "#00d4ff" },
+        { id: "top", name: "Top Region", description: "Upper portion of the subject.", position: { x: 0.5, y: 0.2 }, color: "#7c3aed" },
+        { id: "bottom", name: "Bottom Region", description: "Lower portion of the subject.", position: { x: 0.5, y: 0.8 }, color: "#10b981" },
+        { id: "left", name: "Left Side", description: "Left portion of the subject.", position: { x: 0.2, y: 0.5 }, color: "#f59e0b" }
       ];
   }
 }
