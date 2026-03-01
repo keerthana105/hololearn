@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, Loader2, Bot, User, Sparkles } from "lucide-react";
@@ -15,11 +15,34 @@ export default function ChatBot() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  // Auto-hide on scroll down, show on scroll up
+  const handleScroll = useCallback(() => {
+    const currentY = window.scrollY;
+    if (currentY > lastScrollY.current + 50 && !open) {
+      setIsVisible(false);
+    } else if (currentY < lastScrollY.current - 20) {
+      setIsVisible(true);
+    }
+    lastScrollY.current = currentY;
+  }, [open]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  // Always show when chat is open
+  useEffect(() => {
+    if (open) setIsVisible(true);
+  }, [open]);
 
   const sendMessage = async () => {
     const text = input.trim();
@@ -96,23 +119,38 @@ export default function ChatBot() {
       {/* Floating Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform box-glow"
+        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-300 box-glow ${
+          isVisible ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"
+        }`}
+        aria-label="Toggle chat"
       >
         {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+        {/* Heartbeat pulse ring */}
+        {!open && (
+          <span className="absolute inset-0 rounded-full animate-ping bg-primary/30" />
+        )}
       </button>
 
       {/* Chat Window */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[500px] card-glass rounded-2xl gradient-border flex flex-col overflow-hidden shadow-2xl animate-fade-in">
+        <div className={`fixed z-50 flex flex-col overflow-hidden shadow-2xl transition-all duration-300
+          bottom-24 right-6 w-[360px] max-w-[calc(100vw-2rem)] h-[480px]
+          sm:w-[380px] sm:h-[500px]
+          card-glass rounded-2xl gradient-border animate-fade-in`}
+        >
           {/* Header */}
-          <div className="p-4 border-b border-border/50 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
+          <div className="p-4 border-b border-border/50 flex items-center gap-3 bg-gradient-to-r from-primary/10 to-secondary/10">
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center relative">
               <Sparkles className="w-5 h-5 text-primary" />
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-display font-semibold text-sm">HoloLearn AI</h3>
-              <p className="text-xs text-muted-foreground">Ask me anything</p>
+              <p className="text-xs text-muted-foreground">Online • Ask me anything</p>
             </div>
+            <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-lg hover:bg-muted/50 flex items-center justify-center transition-colors">
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
 
           {/* Messages */}
@@ -160,7 +198,7 @@ export default function ChatBot() {
               <Input
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="Type a message..."
+                placeholder="Ask about anatomy, 3D models..."
                 className="bg-input border-border text-sm"
                 disabled={isLoading}
               />
