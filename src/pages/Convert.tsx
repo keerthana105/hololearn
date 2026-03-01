@@ -16,7 +16,9 @@ import {
   Box,
   X,
   CheckCircle,
-  Wand2
+  Wand2,
+  Mail,
+  Send
 } from "lucide-react";
 import { exportToOBJ, exportToSTL, exportToGLTF, downloadFile } from "@/lib/exportUtils";
 import { removeBackground, loadImage } from "@/lib/backgroundRemoval";
@@ -41,6 +43,76 @@ interface ModelData {
   };
   scale?: number;
   features?: Feature[];
+}
+
+function CompletedSection({ title, conversionId, onExport }: { title: string; conversionId: string | null; onExport: (f: "obj" | "gltf" | "stl") => void }) {
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const { toast } = useToast();
+
+  const handleSendEmail = async () => {
+    if (!conversionId) return;
+    setEmailSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-model-email", {
+        body: { conversionId, modelTitle: title || "Untitled Model" },
+      });
+      if (error) throw error;
+      setEmailSent(true);
+      toast({ title: "Email Sent!", description: data?.message || "Download link sent to your email." });
+    } catch (err: any) {
+      toast({ title: "Email Failed", description: err.message || "Could not send email.", variant: "destructive" });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  return (
+    <div className="card-glass rounded-xl p-4 animate-fade-in border-primary/30">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+          <CheckCircle className="w-5 h-5 text-green-500" />
+        </div>
+        <div>
+          <p className="font-medium text-green-500">Conversion Complete!</p>
+          <p className="text-sm text-muted-foreground">Your 3D model is ready</p>
+        </div>
+      </div>
+      
+      {/* Export Buttons */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <Button variant="outline" onClick={() => onExport("obj")} className="flex-col h-auto py-3">
+          <Download className="w-4 h-4 mb-1" />
+          <span className="text-xs">OBJ</span>
+        </Button>
+        <Button variant="outline" onClick={() => onExport("gltf")} className="flex-col h-auto py-3">
+          <Download className="w-4 h-4 mb-1" />
+          <span className="text-xs">GLTF</span>
+        </Button>
+        <Button variant="outline" onClick={() => onExport("stl")} className="flex-col h-auto py-3">
+          <Download className="w-4 h-4 mb-1" />
+          <span className="text-xs">STL</span>
+        </Button>
+      </div>
+
+      {/* Email Model Link */}
+      <Button
+        variant="outline"
+        className="w-full gap-2"
+        onClick={handleSendEmail}
+        disabled={emailSending || emailSent}
+      >
+        {emailSending ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : emailSent ? (
+          <CheckCircle className="w-4 h-4 text-green-500" />
+        ) : (
+          <Mail className="w-4 h-4" />
+        )}
+        {emailSent ? "Email Sent!" : "Email Download Link"}
+      </Button>
+    </div>
+  );
 }
 
 export default function Convert() {
@@ -437,47 +509,11 @@ export default function Convert() {
               )}
 
               {status === "completed" && (
-                <div className="card-glass rounded-xl p-4 animate-fade-in border-primary/30">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-green-500">Conversion Complete!</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your 3D model is ready
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Export Buttons */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleExport("obj")}
-                      className="flex-col h-auto py-3"
-                    >
-                      <Download className="w-4 h-4 mb-1" />
-                      <span className="text-xs">OBJ</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleExport("gltf")}
-                      className="flex-col h-auto py-3"
-                    >
-                      <Download className="w-4 h-4 mb-1" />
-                      <span className="text-xs">GLTF</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleExport("stl")}
-                      className="flex-col h-auto py-3"
-                    >
-                      <Download className="w-4 h-4 mb-1" />
-                      <span className="text-xs">STL</span>
-                    </Button>
-                  </div>
-                </div>
+                <CompletedSection
+                  title={title}
+                  conversionId={conversionId}
+                  onExport={handleExport}
+                />
               )}
             </div>
 

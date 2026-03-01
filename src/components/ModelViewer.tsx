@@ -615,8 +615,27 @@ function Volumetric3DModel({ shapeType, imageUrl, scale = 1, detailLevel = 48 }:
     }
   }, [shapeType, detailLevel]);
 
+  // Auto-scale: compute bounding box and normalize
+  useEffect(() => {
+    if (meshRef.current) {
+      const box = new THREE.Box3().setFromObject(meshRef.current);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      if (maxDim > 0) {
+        const targetSize = 3.0; // fit within 3 units
+        const normalizeScale = targetSize / maxDim;
+        meshRef.current.scale.setScalar(normalizeScale * scale);
+      }
+      // Center the model
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      meshRef.current.position.sub(center);
+    }
+  }, [geometry, scale]);
+
   return (
-    <mesh ref={meshRef} geometry={geometry} scale={scale} castShadow receiveShadow>
+    <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
       {texture ? (
         <meshStandardMaterial
           map={texture}
