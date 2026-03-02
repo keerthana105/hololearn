@@ -18,6 +18,7 @@ const navLinks = [
   { label: "Pricing", to: "/pricing" },
   { label: "Team", to: "/team" },
   { label: "Contact", to: "/contact" },
+  { label: "AI Chat", to: "/chat" },
 ];
 
 export default function Navbar() {
