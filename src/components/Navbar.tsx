@@ -12,11 +12,8 @@ import {
 
 const navLinks = [
   { label: "Home", to: "/" },
-  { label: "Demo", to: "/demo" },
   { label: "Convert", to: "/convert" },
-  { label: "Features", to: "/features" },
   { label: "Pricing", to: "/pricing" },
-  { label: "Team", to: "/team" },
   { label: "Contact", to: "/contact" },
   { label: "AI Chat", to: "/chat" },
 ];

@@ -193,6 +193,27 @@ export default function Index() {
               </div>
             </div>
           </div>
+
+          {/* Step-by-Step Process */}
+          <div className="max-w-4xl mx-auto mt-16">
+            <h3 className="text-2xl md:text-3xl font-display font-bold text-center mb-10">
+              Step-by-Step <span className="text-glow">Process</span>
+            </h3>
+            <div className="space-y-4">
+              {demoSteps.map((step) => (
+                <div key={step.step} className="flex gap-4 p-5 rounded-xl card-glass gradient-border hover:scale-[1.01] transition-transform">
+                  <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <step.icon className="w-7 h-7 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">STEP {step.step}</span>
+                    <h4 className="font-semibold text-lg mt-1 mb-1">{step.title}</h4>
+                    <p className="text-muted-foreground text-sm">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

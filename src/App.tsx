@@ -9,10 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Convert from "./pages/Convert";
-import Demo from "./pages/Demo";
-import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
-import Team from "./pages/Team";
 import Contact from "./pages/Contact";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
@@ -31,10 +28,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/convert" element={<Convert />} />
-            <Route path="/demo" element={<Demo />} />
-            <Route path="/features" element={<Features />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/team" element={<Team />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="*" element={<NotFound />} />
