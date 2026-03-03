@@ -1,0 +1,149 @@
+{
+  "models": [
+    {
+      "id": "heart",
+      "name": "Human Heart",
+      "file": "heart.glb",
+      "category": "anatomy",
+      "keywords": ["heart", "cardiac", "cardiovascular", "ventricle", "atrium", "aorta"],
+      "thumbnail": "heart_thumb.png",
+      "features": [
+        { "id": "ra", "name": "Right Atrium", "description": "Receives deoxygenated blood from the body via the vena cava.", "position": { "x": 0.8, "y": 0.6, "z": 0.5 }, "color": "#3b82f6" },
+        { "id": "la", "name": "Left Atrium", "description": "Receives oxygenated blood from the lungs via pulmonary veins.", "position": { "x": -0.8, "y": 0.6, "z": 0.5 }, "color": "#ef4444" },
+        { "id": "rv", "name": "Right Ventricle", "description": "Pumps deoxygenated blood to the lungs through the pulmonary artery.", "position": { "x": 0.6, "y": -0.3, "z": 0.8 }, "color": "#6366f1" },
+        { "id": "lv", "name": "Left Ventricle", "description": "The most muscular chamber, pumps oxygenated blood to the entire body.", "position": { "x": -0.6, "y": -0.3, "z": 0.8 }, "color": "#dc2626" },
+        { "id": "aorta", "name": "Aorta", "description": "The largest artery, carries oxygenated blood from the left ventricle.", "position": { "x": 0.0, "y": 1.2, "z": 0.3 }, "color": "#f59e0b" }
+      ]
+    },
+    {
+      "id": "brain",
+      "name": "Human Brain",
+      "file": "brain.glb",
+      "category": "anatomy",
+      "keywords": ["brain", "cerebral", "cortex", "frontal", "temporal", "parietal", "occipital", "cerebellum", "neurology"],
+      "thumbnail": "brain_thumb.png",
+      "features": [
+        { "id": "frontal", "name": "Frontal Lobe", "description": "Controls executive functions, decision making, and voluntary movement.", "position": { "x": 0.0, "y": 0.8, "z": 0.9 }, "color": "#8b5cf6" },
+        { "id": "parietal", "name": "Parietal Lobe", "description": "Processes sensory information including touch and spatial awareness.", "position": { "x": 0.0, "y": 0.9, "z": -0.2 }, "color": "#06b6d4" },
+        { "id": "temporal", "name": "Temporal Lobe", "description": "Processes auditory information, memory, and language.", "position": { "x": 1.0, "y": -0.2, "z": 0.3 }, "color": "#10b981" },
+        { "id": "occipital", "name": "Occipital Lobe", "description": "Primary visual processing center of the brain.", "position": { "x": 0.0, "y": 0.3, "z": -1.0 }, "color": "#f43f5e" },
+        { "id": "cerebellum", "name": "Cerebellum", "description": "Coordinates balance, posture, and motor learning.", "position": { "x": 0.0, "y": -0.8, "z": -0.8 }, "color": "#eab308" }
+      ]
+    },
+    {
+      "id": "lungs",
+      "name": "Human Lungs",
+      "file": "lungs.glb",
+      "category": "anatomy",
+      "keywords": ["lung", "lungs", "pulmonary", "respiratory", "bronchi", "alveoli", "trachea"],
+      "thumbnail": "lungs_thumb.png",
+      "features": [
+        { "id": "upper_right", "name": "Right Upper Lobe", "description": "Uppermost section of the right lung.", "position": { "x": 0.8, "y": 0.8, "z": 0.3 }, "color": "#60a5fa" },
+        { "id": "middle_right", "name": "Right Middle Lobe", "description": "Between horizontal and oblique fissures.", "position": { "x": 0.8, "y": 0.0, "z": 0.5 }, "color": "#34d399" },
+        { "id": "lower_right", "name": "Right Lower Lobe", "description": "Extends to the base of the lung.", "position": { "x": 0.7, "y": -0.7, "z": 0.3 }, "color": "#a78bfa" },
+        { "id": "upper_left", "name": "Left Upper Lobe", "description": "Contains the cardiac notch.", "position": { "x": -0.8, "y": 0.6, "z": 0.3 }, "color": "#f472b6" },
+        { "id": "lower_left", "name": "Left Lower Lobe", "description": "Separated by the oblique fissure.", "position": { "x": -0.7, "y": -0.7, "z": 0.3 }, "color": "#fbbf24" }
+      ]
+    },
+    {
+      "id": "kidney",
+      "name": "Human Kidney",
+      "file": "kidney.glb",
+      "category": "anatomy",
+      "keywords": ["kidney", "renal", "nephron", "ureter", "cortex", "medulla"],
+      "thumbnail": "kidney_thumb.png",
+      "features": [
+        { "id": "cortex", "name": "Renal Cortex", "description": "Outer region for initial blood filtration.", "position": { "x": -0.8, "y": 0.0, "z": 0.5 }, "color": "#ef4444" },
+        { "id": "medulla", "name": "Renal Medulla", "description": "Contains pyramids and loops of Henle.", "position": { "x": 0.0, "y": 0.0, "z": 0.5 }, "color": "#f97316" },
+        { "id": "pelvis", "name": "Renal Pelvis", "description": "Collects urine and channels it to the ureter.", "position": { "x": 0.7, "y": 0.0, "z": 0.3 }, "color": "#eab308" },
+        { "id": "hilum", "name": "Hilum", "description": "Where blood vessels and ureter enter/exit.", "position": { "x": 1.0, "y": 0.0, "z": 0.0 }, "color": "#22c55e" }
+      ]
+    },
+    {
+      "id": "liver",
+      "name": "Human Liver",
+      "file": "liver.glb",
+      "category": "anatomy",
+      "keywords": ["liver", "hepatic", "bile", "gallbladder", "portal"],
+      "thumbnail": "liver_thumb.png",
+      "features": [
+        { "id": "right_lobe", "name": "Right Lobe", "description": "The larger lobe of the liver, responsible for most metabolic functions.", "position": { "x": 0.7, "y": 0.0, "z": 0.5 }, "color": "#dc2626" },
+        { "id": "left_lobe", "name": "Left Lobe", "description": "Smaller lobe, extends across the midline.", "position": { "x": -0.5, "y": 0.2, "z": 0.5 }, "color": "#ef4444" },
+        { "id": "portal_vein", "name": "Portal Vein", "description": "Carries nutrient-rich blood from digestive organs.", "position": { "x": 0.0, "y": -0.3, "z": 0.0 }, "color": "#3b82f6" },
+        { "id": "gallbladder", "name": "Gallbladder", "description": "Stores bile produced by the liver.", "position": { "x": 0.5, "y": -0.5, "z": 0.6 }, "color": "#22c55e" }
+      ]
+    },
+    {
+      "id": "stomach",
+      "name": "Human Stomach",
+      "file": "stomach.glb",
+      "category": "anatomy",
+      "keywords": ["stomach", "gastric", "pylorus", "fundus", "digestion"],
+      "thumbnail": "stomach_thumb.png",
+      "features": [
+        { "id": "fundus", "name": "Fundus", "description": "Upper rounded portion, often contains gas.", "position": { "x": -0.3, "y": 0.8, "z": 0.5 }, "color": "#f97316" },
+        { "id": "body", "name": "Body", "description": "Main central region where digestion occurs.", "position": { "x": 0.0, "y": 0.0, "z": 0.6 }, "color": "#ef4444" },
+        { "id": "pylorus", "name": "Pylorus", "description": "Controls passage of food to the small intestine.", "position": { "x": 0.6, "y": -0.5, "z": 0.3 }, "color": "#eab308" },
+        { "id": "cardia", "name": "Cardia", "description": "Where esophagus meets the stomach.", "position": { "x": -0.2, "y": 1.0, "z": 0.0 }, "color": "#8b5cf6" }
+      ]
+    },
+    {
+      "id": "eye",
+      "name": "Human Eye",
+      "file": "eye.glb",
+      "category": "anatomy",
+      "keywords": ["eye", "retina", "cornea", "iris", "pupil", "optic", "lens", "vision"],
+      "thumbnail": "eye_thumb.png",
+      "features": [
+        { "id": "cornea", "name": "Cornea", "description": "Transparent front surface that refracts light.", "position": { "x": 0.0, "y": 0.0, "z": 1.0 }, "color": "#60a5fa" },
+        { "id": "iris", "name": "Iris", "description": "Colored part that controls pupil size and light entry.", "position": { "x": 0.0, "y": 0.0, "z": 0.8 }, "color": "#22c55e" },
+        { "id": "lens", "name": "Lens", "description": "Focuses light onto the retina.", "position": { "x": 0.0, "y": 0.0, "z": 0.4 }, "color": "#f59e0b" },
+        { "id": "retina", "name": "Retina", "description": "Light-sensitive layer that converts images to nerve signals.", "position": { "x": 0.0, "y": 0.0, "z": -0.8 }, "color": "#ef4444" },
+        { "id": "optic_nerve", "name": "Optic Nerve", "description": "Transmits visual information to the brain.", "position": { "x": 0.0, "y": -0.3, "z": -1.1 }, "color": "#8b5cf6" }
+      ]
+    },
+    {
+      "id": "ear",
+      "name": "Human Ear",
+      "file": "ear.glb",
+      "category": "anatomy",
+      "keywords": ["ear", "cochlea", "eardrum", "tympanic", "auditory", "hearing"],
+      "thumbnail": "ear_thumb.png",
+      "features": [
+        { "id": "pinna", "name": "Pinna (Outer Ear)", "description": "Collects and funnels sound waves.", "position": { "x": -1.0, "y": 0.3, "z": 0.5 }, "color": "#f97316" },
+        { "id": "ear_canal", "name": "Ear Canal", "description": "Channels sound to the eardrum.", "position": { "x": -0.3, "y": 0.0, "z": 0.3 }, "color": "#eab308" },
+        { "id": "eardrum", "name": "Tympanic Membrane", "description": "Vibrates in response to sound waves.", "position": { "x": 0.2, "y": 0.0, "z": 0.0 }, "color": "#ef4444" },
+        { "id": "cochlea", "name": "Cochlea", "description": "Spiral-shaped organ that converts vibrations to nerve signals.", "position": { "x": 0.8, "y": -0.3, "z": -0.2 }, "color": "#8b5cf6" }
+      ]
+    },
+    {
+      "id": "skeleton",
+      "name": "Human Skeleton",
+      "file": "skeleton.glb",
+      "category": "anatomy",
+      "keywords": ["skeleton", "bone", "skull", "spine", "rib", "femur", "skeletal", "orthopedic"],
+      "thumbnail": "skeleton_thumb.png",
+      "features": [
+        { "id": "skull", "name": "Skull", "description": "Protects the brain and supports facial structures.", "position": { "x": 0.0, "y": 1.5, "z": 0.3 }, "color": "#f5f5f5" },
+        { "id": "spine", "name": "Vertebral Column", "description": "33 vertebrae protecting the spinal cord.", "position": { "x": 0.0, "y": 0.3, "z": -0.3 }, "color": "#d4d4d4" },
+        { "id": "ribcage", "name": "Rib Cage", "description": "12 pairs of ribs protecting heart and lungs.", "position": { "x": 0.0, "y": 0.5, "z": 0.5 }, "color": "#e5e5e5" },
+        { "id": "pelvis", "name": "Pelvis", "description": "Supports upper body and connects to lower limbs.", "position": { "x": 0.0, "y": -0.5, "z": 0.2 }, "color": "#d4d4d4" },
+        { "id": "femur", "name": "Femur", "description": "Longest and strongest bone in the body.", "position": { "x": 0.3, "y": -1.2, "z": 0.2 }, "color": "#fafafa" }
+      ]
+    },
+    {
+      "id": "tooth",
+      "name": "Human Tooth",
+      "file": "tooth.glb",
+      "category": "anatomy",
+      "keywords": ["tooth", "teeth", "dental", "molar", "enamel", "root", "crown"],
+      "thumbnail": "tooth_thumb.png",
+      "features": [
+        { "id": "enamel", "name": "Enamel", "description": "Hardest substance in the body, protects the crown.", "position": { "x": 0.0, "y": 0.6, "z": 0.4 }, "color": "#f5f5f5" },
+        { "id": "dentin", "name": "Dentin", "description": "Makes up bulk of tooth structure beneath enamel.", "position": { "x": 0.0, "y": 0.2, "z": 0.3 }, "color": "#fde68a" },
+        { "id": "pulp", "name": "Pulp Chamber", "description": "Contains nerves and blood vessels.", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "color": "#ef4444" },
+        { "id": "root", "name": "Root", "description": "Anchors tooth in jawbone.", "position": { "x": 0.0, "y": -0.8, "z": 0.0 }, "color": "#d4d4d4" }
+      ]
+    }
+  ]
+}
