@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Upload, Loader2, Sparkles, Download, FileImage, Box, X, CheckCircle, Wand2, Mail, Send, ChevronDown, Search
+  Upload, Loader2, Sparkles, Download, FileImage, Box, X, CheckCircle, Wand2, Mail, Send, ChevronDown, Search, AlertTriangle, Lock
 } from "lucide-react";
 import { exportToOBJ, exportToSTL, exportToGLTF, downloadFile } from "@/lib/exportUtils";
 import { removeBackground, loadImage } from "@/lib/backgroundRemoval";
+
+const FREE_CONVERSION_LIMIT = 5;
 
 type ConversionStatus = "idle" | "uploading" | "removing-bg" | "classifying" | "classified" | "loading-model" | "completed" | "failed";
 
@@ -45,15 +47,10 @@ interface ModelData {
 
 // ====== Classification Result Card ======
 function ClassificationResult({ 
-  modelData, 
-  manifest, 
-  onConfirm, 
-  onChangeModel 
+  modelData, manifest, onConfirm, onChangeModel 
 }: { 
-  modelData: ModelData; 
-  manifest: ManifestModel[];
-  onConfirm: (modelId: string) => void;
-  onChangeModel: (modelId: string) => void;
+  modelData: ModelData; manifest: ManifestModel[];
+  onConfirm: (modelId: string) => void; onChangeModel: (modelId: string) => void;
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const matchedModel = manifest.find(m => m.id === modelData.matchedModelId);
@@ -71,7 +68,6 @@ function ClassificationResult({
         </div>
       </div>
 
-      {/* Matched result */}
       <div className="bg-muted/30 rounded-lg p-3 mb-3">
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-semibold">
@@ -88,17 +84,13 @@ function ClassificationResult({
         </div>
       </div>
 
-      {/* Alternative matches */}
       {modelData.alternativeMatches && modelData.alternativeMatches.length > 0 && (
         <div className="mb-3">
           <p className="text-xs text-muted-foreground mb-1">Other possibilities:</p>
           <div className="flex flex-wrap gap-1">
             {modelData.alternativeMatches.map((alt) => (
-              <button
-                key={alt.modelId}
-                onClick={() => onChangeModel(alt.modelId)}
-                className="text-xs px-2 py-1 rounded-md bg-muted/50 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
-              >
+              <button key={alt.modelId} onClick={() => onChangeModel(alt.modelId)}
+                className="text-xs px-2 py-1 rounded-md bg-muted/50 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors">
                 {manifest.find(m => m.id === alt.modelId)?.name || alt.modelId} ({alt.confidence}%)
               </button>
             ))}
@@ -106,25 +98,19 @@ function ClassificationResult({
         </div>
       )}
 
-      {/* Model selector dropdown */}
       <div className="relative mb-3">
-        <button
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border hover:border-primary/50 text-sm transition-colors"
-        >
+        <button onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border hover:border-primary/50 text-sm transition-colors">
           <span>{matchedModel?.name || "Select a model..."}</span>
           <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
         </button>
         {showDropdown && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-xl z-20 max-h-[200px] overflow-y-auto">
             {manifest.map((model) => (
-              <button
-                key={model.id}
-                onClick={() => { onChangeModel(model.id); setShowDropdown(false); }}
+              <button key={model.id} onClick={() => { onChangeModel(model.id); setShowDropdown(false); }}
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-primary/10 transition-colors ${
                   model.id === modelData.matchedModelId ? 'bg-primary/20 text-primary font-medium' : 'text-foreground'
-                }`}
-              >
+                }`}>
                 {model.name}
               </button>
             ))}
@@ -132,14 +118,8 @@ function ClassificationResult({
         )}
       </div>
 
-      {/* Confirm button */}
-      <Button
-        variant="hero"
-        className="w-full gap-2"
-        onClick={() => onConfirm(modelData.matchedModelId || "heart")}
-      >
-        <CheckCircle className="w-4 h-4" />
-        Confirm & Load 3D Model
+      <Button variant="hero" className="w-full gap-2" onClick={() => onConfirm(modelData.matchedModelId || "heart")}>
+        <CheckCircle className="w-4 h-4" /> Confirm & Load 3D Model
       </Button>
     </div>
   );
@@ -198,6 +178,53 @@ function CompletedSection({ title, conversionId, onExport }: { title: string; co
   );
 }
 
+// ====== Subscription Limit Alert ======
+function SubscriptionAlert({ used, limit, onSubscribe }: { used: number; limit: number; onSubscribe: () => void }) {
+  const remaining = Math.max(0, limit - used);
+  const isLocked = remaining <= 0;
+
+  if (!isLocked && remaining > 2) return null;
+
+  return (
+    <div className={`rounded-xl p-4 animate-fade-in border ${
+      isLocked ? 'bg-destructive/10 border-destructive/40' : 'bg-yellow-500/10 border-yellow-500/30'
+    }`}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          isLocked ? 'bg-destructive/20' : 'bg-yellow-500/20'
+        }`}>
+          {isLocked ? <Lock className="w-5 h-5 text-destructive" /> : <AlertTriangle className="w-5 h-5 text-yellow-500" />}
+        </div>
+        <div>
+          <p className={`font-semibold ${isLocked ? 'text-destructive' : 'text-yellow-500'}`}>
+            {isLocked ? "Free Limit Reached" : `Only ${remaining} free conversion${remaining === 1 ? '' : 's'} left`}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {isLocked
+              ? `You've used all ${limit} free conversions. Subscribe for unlimited access.`
+              : `You've used ${used} of ${limit} free conversions.`
+            }
+          </p>
+        </div>
+      </div>
+      <div className="w-full bg-muted rounded-full h-2 mb-3">
+        <div
+          className={`h-2 rounded-full transition-all ${isLocked ? 'bg-destructive' : 'bg-yellow-500'}`}
+          style={{ width: `${Math.min(100, (used / limit) * 100)}%` }}
+        />
+      </div>
+      <Button
+        variant={isLocked ? "hero" : "outline"}
+        className="w-full gap-2"
+        onClick={onSubscribe}
+      >
+        <Sparkles className="w-4 h-4" />
+        {isLocked ? "Subscribe for Unlimited Conversions" : "Upgrade to Pro"}
+      </Button>
+    </div>
+  );
+}
+
 // ====== MAIN CONVERT PAGE ======
 export default function Convert() {
   const { user, loading: authLoading } = useAuth();
@@ -214,6 +241,8 @@ export default function Convert() {
   const [processedFile, setProcessedFile] = useState<File | null>(null);
   const [manifest, setManifest] = useState<ManifestModel[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [conversionCount, setConversionCount] = useState(0);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   // Load manifest
   useEffect(() => {
@@ -223,12 +252,39 @@ export default function Convert() {
       .catch(err => console.warn("Could not load model manifest:", err));
   }, []);
 
+  // Check conversion count & subscription
+  useEffect(() => {
+    if (!user) return;
+
+    const checkCount = async () => {
+      const { count } = await supabase
+        .from("conversions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setConversionCount(count || 0);
+    };
+
+    const checkSubscription = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("check-subscription");
+        setIsSubscribed(data?.subscribed || false);
+      } catch {
+        setIsSubscribed(false);
+      }
+    };
+
+    checkCount();
+    checkSubscription();
+  }, [user]);
+
   useEffect(() => {
     if (!authLoading && !user) {
       toast({ title: "Authentication Required", description: "Please sign in to convert images.", variant: "destructive" });
       navigate("/auth");
     }
   }, [user, authLoading, navigate, toast]);
+
+  const isLimitReached = !isSubscribed && conversionCount >= FREE_CONVERSION_LIMIT;
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -287,12 +343,20 @@ export default function Convert() {
     }
   };
 
-  // Step 1: Classify the image
   const handleClassify = async () => {
     if (!file || !user) return;
+
+    if (isLimitReached) {
+      toast({
+        title: "Free Limit Reached",
+        description: `You've used all ${FREE_CONVERSION_LIMIT} free conversions. Please subscribe for unlimited access.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setStatus("uploading");
-
       const fileToUpload = processedFile || file;
       const fileExt = processedFile ? "png" : file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -309,9 +373,9 @@ export default function Convert() {
       if (insertError) throw new Error(`Failed to create conversion: ${insertError.message}`);
 
       setConversionId(conversion.id);
+      setConversionCount(prev => prev + 1);
       setStatus("classifying");
 
-      // Call edge function for classification only
       const { data: result, error: funcError } = await supabase.functions.invoke("convert-to-3d", {
         body: { conversionId: conversion.id, imageUrl: publicUrl },
       });
@@ -332,12 +396,10 @@ export default function Convert() {
     }
   };
 
-  // Step 2: Confirm and load model
   const handleConfirmModel = async (modelId: string) => {
     setSelectedModelId(modelId);
     setStatus("loading-model");
 
-    // Get features from manifest
     const manifestModel = manifest.find(m => m.id === modelId);
     const features = manifestModel?.features || [];
 
@@ -351,7 +413,6 @@ export default function Convert() {
 
     setModelData(updatedModelData);
 
-    // Update conversion in DB
     if (conversionId) {
       try {
         await supabase.functions.invoke("convert-to-3d", {
@@ -376,7 +437,6 @@ export default function Convert() {
     try {
       const timestamp = Date.now();
       const baseName = title || "hololearn_model";
-      // Convert to export-compatible format
       const exportData = { shapeType: modelData.matchedModelId || "organic" };
       switch (format) {
         case "obj": downloadFile(exportToOBJ(exportData), `${baseName}_${timestamp}.obj`, "text/plain"); break;
@@ -410,18 +470,32 @@ export default function Convert() {
             <p className="text-muted-foreground text-lg">
               Upload a 2D image — AI classifies it and loads a professional 3D model
             </p>
+            {!isSubscribed && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {conversionCount}/{FREE_CONVERSION_LIMIT} free conversions used
+              </p>
+            )}
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Left: Upload & Controls */}
             <div className="space-y-6">
+              {/* Subscription alert */}
+              {!isSubscribed && (
+                <SubscriptionAlert
+                  used={conversionCount}
+                  limit={FREE_CONVERSION_LIMIT}
+                  onSubscribe={() => navigate("/pricing")}
+                />
+              )}
+
               {/* Upload Area */}
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 className={`relative border-2 border-dashed rounded-2xl p-8 transition-all ${
                   file ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/20"
-                }`}
+                } ${isLimitReached ? 'opacity-50 pointer-events-none' : ''}`}
               >
                 {!file ? (
                   <label className="flex flex-col items-center justify-center cursor-pointer py-12">
@@ -487,7 +561,7 @@ export default function Convert() {
               )}
 
               {/* Classify Button */}
-              {file && status === "idle" && (
+              {file && status === "idle" && !isLimitReached && (
                 <Button variant="hero" size="lg" className="w-full" onClick={handleClassify}>
                   <Sparkles className="w-5 h-5 mr-2" /> Analyze & Classify Image
                 </Button>
@@ -508,7 +582,7 @@ export default function Convert() {
                 </div>
               )}
 
-              {/* Classification result - user confirms */}
+              {/* Classification result */}
               {status === "classified" && modelData && (
                 <ClassificationResult
                   modelData={modelData}
