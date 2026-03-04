@@ -8,11 +8,18 @@
       "keywords": ["heart", "cardiac", "cardiovascular", "ventricle", "atrium", "aorta"],
       "thumbnail": "heart_thumb.png",
       "features": [
-        { "id": "ra", "name": "Right Atrium", "description": "Receives deoxygenated blood from the body via the vena cava.", "position": { "x": 0.8, "y": 0.6, "z": 0.5 }, "color": "#3b82f6" },
-        { "id": "la", "name": "Left Atrium", "description": "Receives oxygenated blood from the lungs via pulmonary veins.", "position": { "x": -0.8, "y": 0.6, "z": 0.5 }, "color": "#ef4444" },
+        { "id": "ra", "name": "Right Atrium", "description": "Receives deoxygenated blood from the body via the superior and inferior vena cava.", "position": { "x": 0.8, "y": 0.6, "z": 0.5 }, "color": "#3b82f6" },
+        { "id": "la", "name": "Left Atrium", "description": "Receives oxygenated blood from the lungs via four pulmonary veins.", "position": { "x": -0.8, "y": 0.6, "z": 0.5 }, "color": "#ef4444" },
         { "id": "rv", "name": "Right Ventricle", "description": "Pumps deoxygenated blood to the lungs through the pulmonary artery.", "position": { "x": 0.6, "y": -0.3, "z": 0.8 }, "color": "#6366f1" },
-        { "id": "lv", "name": "Left Ventricle", "description": "The most muscular chamber, pumps oxygenated blood to the entire body.", "position": { "x": -0.6, "y": -0.3, "z": 0.8 }, "color": "#dc2626" },
-        { "id": "aorta", "name": "Aorta", "description": "The largest artery, carries oxygenated blood from the left ventricle.", "position": { "x": 0.0, "y": 1.2, "z": 0.3 }, "color": "#f59e0b" }
+        { "id": "lv", "name": "Left Ventricle", "description": "The most muscular chamber, pumps oxygenated blood to the entire body through the aorta.", "position": { "x": -0.6, "y": -0.3, "z": 0.8 }, "color": "#dc2626" },
+        { "id": "aorta", "name": "Aorta", "description": "The largest artery in the body, carries oxygenated blood from the left ventricle to systemic circulation.", "position": { "x": 0.0, "y": 1.2, "z": 0.3 }, "color": "#f59e0b" },
+        { "id": "pulmonary_artery", "name": "Pulmonary Artery", "description": "Carries deoxygenated blood from the right ventricle to the lungs for gas exchange.", "position": { "x": 0.3, "y": 1.0, "z": 0.6 }, "color": "#8b5cf6" },
+        { "id": "tricuspid", "name": "Tricuspid Valve", "description": "Three-leaflet valve between the right atrium and right ventricle, prevents backflow.", "position": { "x": 0.7, "y": 0.15, "z": 0.6 }, "color": "#14b8a6" },
+        { "id": "mitral", "name": "Mitral Valve", "description": "Bicuspid valve between the left atrium and left ventricle, also called the bicuspid valve.", "position": { "x": -0.7, "y": 0.15, "z": 0.6 }, "color": "#f43f5e" },
+        { "id": "svc", "name": "Superior Vena Cava", "description": "Large vein that returns deoxygenated blood from the upper body to the right atrium.", "position": { "x": 0.9, "y": 1.0, "z": 0.2 }, "color": "#0ea5e9" },
+        { "id": "ivc", "name": "Inferior Vena Cava", "description": "Largest vein in the body, returns blood from the lower body to the right atrium.", "position": { "x": 0.8, "y": -0.8, "z": 0.0 }, "color": "#06b6d4" },
+        { "id": "septum", "name": "Interventricular Septum", "description": "Muscular wall separating the left and right ventricles.", "position": { "x": 0.0, "y": -0.1, "z": 0.7 }, "color": "#d946ef" },
+        { "id": "coronary", "name": "Coronary Arteries", "description": "Supply oxygenated blood to the heart muscle itself. Blockage causes heart attacks.", "position": { "x": -0.3, "y": 0.4, "z": 1.0 }, "color": "#facc15" }
       ]
     },
     {
@@ -23,11 +30,18 @@
       "keywords": ["brain", "cerebral", "cortex", "frontal", "temporal", "parietal", "occipital", "cerebellum", "neurology"],
       "thumbnail": "brain_thumb.png",
       "features": [
-        { "id": "frontal", "name": "Frontal Lobe", "description": "Controls executive functions, decision making, and voluntary movement.", "position": { "x": 0.0, "y": 0.8, "z": 0.9 }, "color": "#8b5cf6" },
-        { "id": "parietal", "name": "Parietal Lobe", "description": "Processes sensory information including touch and spatial awareness.", "position": { "x": 0.0, "y": 0.9, "z": -0.2 }, "color": "#06b6d4" },
-        { "id": "temporal", "name": "Temporal Lobe", "description": "Processes auditory information, memory, and language.", "position": { "x": 1.0, "y": -0.2, "z": 0.3 }, "color": "#10b981" },
-        { "id": "occipital", "name": "Occipital Lobe", "description": "Primary visual processing center of the brain.", "position": { "x": 0.0, "y": 0.3, "z": -1.0 }, "color": "#f43f5e" },
-        { "id": "cerebellum", "name": "Cerebellum", "description": "Coordinates balance, posture, and motor learning.", "position": { "x": 0.0, "y": -0.8, "z": -0.8 }, "color": "#eab308" }
+        { "id": "frontal", "name": "Frontal Lobe", "description": "Controls executive functions, decision making, personality, and voluntary movement.", "position": { "x": 0.0, "y": 0.8, "z": 0.9 }, "color": "#8b5cf6" },
+        { "id": "parietal", "name": "Parietal Lobe", "description": "Processes sensory information including touch, temperature, and spatial awareness.", "position": { "x": 0.0, "y": 0.9, "z": -0.2 }, "color": "#06b6d4" },
+        { "id": "temporal", "name": "Temporal Lobe", "description": "Processes auditory information, memory formation, and language comprehension.", "position": { "x": 1.0, "y": -0.2, "z": 0.3 }, "color": "#10b981" },
+        { "id": "occipital", "name": "Occipital Lobe", "description": "Primary visual processing center, interprets signals from the eyes.", "position": { "x": 0.0, "y": 0.3, "z": -1.0 }, "color": "#f43f5e" },
+        { "id": "cerebellum", "name": "Cerebellum", "description": "Coordinates balance, posture, motor learning, and fine movement control.", "position": { "x": 0.0, "y": -0.8, "z": -0.8 }, "color": "#eab308" },
+        { "id": "brainstem", "name": "Brain Stem", "description": "Controls vital functions: breathing, heart rate, blood pressure, and consciousness.", "position": { "x": 0.0, "y": -1.0, "z": -0.3 }, "color": "#ef4444" },
+        { "id": "corpus_callosum", "name": "Corpus Callosum", "description": "Band of nerve fibers connecting the left and right cerebral hemispheres.", "position": { "x": 0.0, "y": 0.5, "z": 0.0 }, "color": "#f97316" },
+        { "id": "thalamus", "name": "Thalamus", "description": "Relay station that routes sensory and motor signals to the cerebral cortex.", "position": { "x": 0.0, "y": 0.1, "z": 0.0 }, "color": "#a855f7" },
+        { "id": "hypothalamus", "name": "Hypothalamus", "description": "Regulates body temperature, hunger, thirst, sleep, and hormonal balance.", "position": { "x": 0.0, "y": -0.2, "z": 0.3 }, "color": "#ec4899" },
+        { "id": "hippocampus", "name": "Hippocampus", "description": "Critical for forming new memories and spatial navigation.", "position": { "x": 0.6, "y": -0.3, "z": 0.1 }, "color": "#22c55e" },
+        { "id": "amygdala", "name": "Amygdala", "description": "Processes emotions, especially fear and anxiety responses.", "position": { "x": 0.7, "y": -0.4, "z": 0.4 }, "color": "#e11d48" },
+        { "id": "motor_cortex", "name": "Motor Cortex", "description": "Located in the frontal lobe, directly controls voluntary muscle movements.", "position": { "x": 0.0, "y": 1.0, "z": 0.2 }, "color": "#0ea5e9" }
       ]
     },
     {
@@ -38,11 +52,18 @@
       "keywords": ["lung", "lungs", "pulmonary", "respiratory", "bronchi", "alveoli", "trachea"],
       "thumbnail": "lungs_thumb.png",
       "features": [
-        { "id": "upper_right", "name": "Right Upper Lobe", "description": "Uppermost section of the right lung.", "position": { "x": 0.8, "y": 0.8, "z": 0.3 }, "color": "#60a5fa" },
-        { "id": "middle_right", "name": "Right Middle Lobe", "description": "Between horizontal and oblique fissures.", "position": { "x": 0.8, "y": 0.0, "z": 0.5 }, "color": "#34d399" },
-        { "id": "lower_right", "name": "Right Lower Lobe", "description": "Extends to the base of the lung.", "position": { "x": 0.7, "y": -0.7, "z": 0.3 }, "color": "#a78bfa" },
-        { "id": "upper_left", "name": "Left Upper Lobe", "description": "Contains the cardiac notch.", "position": { "x": -0.8, "y": 0.6, "z": 0.3 }, "color": "#f472b6" },
-        { "id": "lower_left", "name": "Left Lower Lobe", "description": "Separated by the oblique fissure.", "position": { "x": -0.7, "y": -0.7, "z": 0.3 }, "color": "#fbbf24" }
+        { "id": "upper_right", "name": "Right Upper Lobe", "description": "Uppermost section of the right lung, separated by the horizontal fissure.", "position": { "x": 0.8, "y": 0.8, "z": 0.3 }, "color": "#60a5fa" },
+        { "id": "middle_right", "name": "Right Middle Lobe", "description": "Unique to the right lung, located between horizontal and oblique fissures.", "position": { "x": 0.8, "y": 0.0, "z": 0.5 }, "color": "#34d399" },
+        { "id": "lower_right", "name": "Right Lower Lobe", "description": "Largest lobe of the right lung, extends to the diaphragm.", "position": { "x": 0.7, "y": -0.7, "z": 0.3 }, "color": "#a78bfa" },
+        { "id": "upper_left", "name": "Left Upper Lobe", "description": "Contains the cardiac notch that accommodates the heart.", "position": { "x": -0.8, "y": 0.6, "z": 0.3 }, "color": "#f472b6" },
+        { "id": "lower_left", "name": "Left Lower Lobe", "description": "Separated from the upper lobe by the oblique fissure.", "position": { "x": -0.7, "y": -0.7, "z": 0.3 }, "color": "#fbbf24" },
+        { "id": "trachea", "name": "Trachea", "description": "Windpipe connecting the larynx to the bronchi, reinforced with C-shaped cartilage rings.", "position": { "x": 0.0, "y": 1.2, "z": 0.2 }, "color": "#94a3b8" },
+        { "id": "right_bronchus", "name": "Right Main Bronchus", "description": "Wider, shorter, and more vertical than the left, making it more susceptible to aspiration.", "position": { "x": 0.4, "y": 0.7, "z": 0.2 }, "color": "#2dd4bf" },
+        { "id": "left_bronchus", "name": "Left Main Bronchus", "description": "Narrower and longer, angles more horizontally than the right bronchus.", "position": { "x": -0.4, "y": 0.6, "z": 0.2 }, "color": "#fb923c" },
+        { "id": "alveoli", "name": "Alveoli", "description": "Tiny air sacs (~480 million) where gas exchange occurs with surrounding capillaries.", "position": { "x": 0.5, "y": -0.3, "z": 0.7 }, "color": "#e879f9" },
+        { "id": "pleura", "name": "Pleural Membrane", "description": "Double-layered membrane surrounding each lung, contains lubricating fluid.", "position": { "x": -1.0, "y": 0.0, "z": 0.6 }, "color": "#67e8f9" },
+        { "id": "diaphragm", "name": "Diaphragm", "description": "Primary muscle of respiration, contracts to expand the thoracic cavity.", "position": { "x": 0.0, "y": -1.0, "z": 0.3 }, "color": "#f87171" },
+        { "id": "hilum", "name": "Hilum", "description": "Region where bronchi, blood vessels, and nerves enter each lung.", "position": { "x": 0.3, "y": 0.3, "z": 0.0 }, "color": "#a3e635" }
       ]
     },
     {
@@ -53,10 +74,16 @@
       "keywords": ["kidney", "renal", "nephron", "ureter", "cortex", "medulla"],
       "thumbnail": "kidney_thumb.png",
       "features": [
-        { "id": "cortex", "name": "Renal Cortex", "description": "Outer region for initial blood filtration.", "position": { "x": -0.8, "y": 0.0, "z": 0.5 }, "color": "#ef4444" },
-        { "id": "medulla", "name": "Renal Medulla", "description": "Contains pyramids and loops of Henle.", "position": { "x": 0.0, "y": 0.0, "z": 0.5 }, "color": "#f97316" },
-        { "id": "pelvis", "name": "Renal Pelvis", "description": "Collects urine and channels it to the ureter.", "position": { "x": 0.7, "y": 0.0, "z": 0.3 }, "color": "#eab308" },
-        { "id": "hilum", "name": "Hilum", "description": "Where blood vessels and ureter enter/exit.", "position": { "x": 1.0, "y": 0.0, "z": 0.0 }, "color": "#22c55e" }
+        { "id": "cortex", "name": "Renal Cortex", "description": "Outer region containing glomeruli and proximal/distal convoluted tubules for blood filtration.", "position": { "x": -0.8, "y": 0.0, "z": 0.5 }, "color": "#ef4444" },
+        { "id": "medulla", "name": "Renal Medulla", "description": "Contains renal pyramids with loops of Henle and collecting ducts for urine concentration.", "position": { "x": 0.0, "y": 0.0, "z": 0.5 }, "color": "#f97316" },
+        { "id": "pelvis", "name": "Renal Pelvis", "description": "Funnel-shaped structure that collects urine from calyces and channels it to the ureter.", "position": { "x": 0.7, "y": 0.0, "z": 0.3 }, "color": "#eab308" },
+        { "id": "hilum", "name": "Hilum", "description": "Concave medial border where renal artery, vein, ureter, and nerves enter/exit.", "position": { "x": 1.0, "y": 0.0, "z": 0.0 }, "color": "#22c55e" },
+        { "id": "renal_artery", "name": "Renal Artery", "description": "Branches from the abdominal aorta, delivers ~20% of cardiac output to each kidney.", "position": { "x": 1.2, "y": 0.3, "z": 0.0 }, "color": "#dc2626" },
+        { "id": "renal_vein", "name": "Renal Vein", "description": "Returns filtered blood from the kidney to the inferior vena cava.", "position": { "x": 1.2, "y": -0.3, "z": 0.0 }, "color": "#3b82f6" },
+        { "id": "ureter", "name": "Ureter", "description": "Muscular tube that transports urine from the renal pelvis to the urinary bladder.", "position": { "x": 0.8, "y": -0.8, "z": 0.1 }, "color": "#a855f7" },
+        { "id": "nephron", "name": "Nephron", "description": "Functional unit of the kidney (~1 million per kidney), filters blood and produces urine.", "position": { "x": -0.5, "y": 0.5, "z": 0.6 }, "color": "#14b8a6" },
+        { "id": "capsule", "name": "Renal Capsule", "description": "Tough fibrous layer that protects the kidney from trauma and infection.", "position": { "x": -1.0, "y": 0.5, "z": 0.3 }, "color": "#64748b" },
+        { "id": "calyx", "name": "Renal Calyces", "description": "Cup-shaped structures that collect urine draining from the renal pyramids.", "position": { "x": 0.4, "y": 0.4, "z": 0.4 }, "color": "#fb923c" }
       ]
     },
     {
@@ -67,10 +94,16 @@
       "keywords": ["liver", "hepatic", "bile", "gallbladder", "portal"],
       "thumbnail": "liver_thumb.png",
       "features": [
-        { "id": "right_lobe", "name": "Right Lobe", "description": "The larger lobe of the liver, responsible for most metabolic functions.", "position": { "x": 0.7, "y": 0.0, "z": 0.5 }, "color": "#dc2626" },
-        { "id": "left_lobe", "name": "Left Lobe", "description": "Smaller lobe, extends across the midline.", "position": { "x": -0.5, "y": 0.2, "z": 0.5 }, "color": "#ef4444" },
-        { "id": "portal_vein", "name": "Portal Vein", "description": "Carries nutrient-rich blood from digestive organs.", "position": { "x": 0.0, "y": -0.3, "z": 0.0 }, "color": "#3b82f6" },
-        { "id": "gallbladder", "name": "Gallbladder", "description": "Stores bile produced by the liver.", "position": { "x": 0.5, "y": -0.5, "z": 0.6 }, "color": "#22c55e" }
+        { "id": "right_lobe", "name": "Right Lobe", "description": "The larger lobe (~6x larger than left), performs most metabolic and detoxification functions.", "position": { "x": 0.7, "y": 0.0, "z": 0.5 }, "color": "#dc2626" },
+        { "id": "left_lobe", "name": "Left Lobe", "description": "Smaller, thinner lobe that extends across the midline towards the spleen.", "position": { "x": -0.5, "y": 0.2, "z": 0.5 }, "color": "#ef4444" },
+        { "id": "portal_vein", "name": "Hepatic Portal Vein", "description": "Carries nutrient-rich blood from the digestive organs for processing.", "position": { "x": 0.0, "y": -0.3, "z": 0.0 }, "color": "#3b82f6" },
+        { "id": "gallbladder", "name": "Gallbladder", "description": "Pear-shaped organ that stores and concentrates bile produced by the liver.", "position": { "x": 0.5, "y": -0.5, "z": 0.6 }, "color": "#22c55e" },
+        { "id": "hepatic_artery", "name": "Hepatic Artery", "description": "Supplies oxygenated blood to the liver from the celiac trunk.", "position": { "x": -0.2, "y": -0.5, "z": 0.0 }, "color": "#f43f5e" },
+        { "id": "hepatic_vein", "name": "Hepatic Veins", "description": "Three major veins that drain processed blood into the inferior vena cava.", "position": { "x": 0.0, "y": 0.6, "z": -0.2 }, "color": "#6366f1" },
+        { "id": "caudate_lobe", "name": "Caudate Lobe", "description": "Small lobe on the posterior surface, wraps around the inferior vena cava.", "position": { "x": 0.2, "y": 0.3, "z": -0.5 }, "color": "#f97316" },
+        { "id": "quadrate_lobe", "name": "Quadrate Lobe", "description": "Small lobe on the inferior surface, between the gallbladder and round ligament.", "position": { "x": 0.3, "y": -0.3, "z": 0.4 }, "color": "#a855f7" },
+        { "id": "bile_duct", "name": "Common Bile Duct", "description": "Carries bile from the liver and gallbladder to the duodenum for fat digestion.", "position": { "x": 0.3, "y": -0.7, "z": 0.3 }, "color": "#84cc16" },
+        { "id": "falciform", "name": "Falciform Ligament", "description": "Separates the right and left lobes, attaches the liver to the anterior abdominal wall.", "position": { "x": 0.0, "y": 0.1, "z": 0.7 }, "color": "#e2e8f0" }
       ]
     },
     {
@@ -81,10 +114,16 @@
       "keywords": ["stomach", "gastric", "pylorus", "fundus", "digestion"],
       "thumbnail": "stomach_thumb.png",
       "features": [
-        { "id": "fundus", "name": "Fundus", "description": "Upper rounded portion, often contains gas.", "position": { "x": -0.3, "y": 0.8, "z": 0.5 }, "color": "#f97316" },
-        { "id": "body", "name": "Body", "description": "Main central region where digestion occurs.", "position": { "x": 0.0, "y": 0.0, "z": 0.6 }, "color": "#ef4444" },
-        { "id": "pylorus", "name": "Pylorus", "description": "Controls passage of food to the small intestine.", "position": { "x": 0.6, "y": -0.5, "z": 0.3 }, "color": "#eab308" },
-        { "id": "cardia", "name": "Cardia", "description": "Where esophagus meets the stomach.", "position": { "x": -0.2, "y": 1.0, "z": 0.0 }, "color": "#8b5cf6" }
+        { "id": "fundus", "name": "Fundus", "description": "Upper dome-shaped portion that often accumulates gas after eating.", "position": { "x": -0.3, "y": 0.8, "z": 0.5 }, "color": "#f97316" },
+        { "id": "body", "name": "Body (Corpus)", "description": "Main central region containing gastric glands that produce HCl and pepsinogen.", "position": { "x": 0.0, "y": 0.0, "z": 0.6 }, "color": "#ef4444" },
+        { "id": "pylorus", "name": "Pylorus", "description": "Sphincter-controlled passage that regulates food entry into the duodenum.", "position": { "x": 0.6, "y": -0.5, "z": 0.3 }, "color": "#eab308" },
+        { "id": "cardia", "name": "Cardia", "description": "Junction where the esophagus meets the stomach, has a sphincter to prevent reflux.", "position": { "x": -0.2, "y": 1.0, "z": 0.0 }, "color": "#8b5cf6" },
+        { "id": "antrum", "name": "Pyloric Antrum", "description": "Lower portion that mixes food with gastric juices before release through pylorus.", "position": { "x": 0.4, "y": -0.3, "z": 0.5 }, "color": "#14b8a6" },
+        { "id": "greater_curvature", "name": "Greater Curvature", "description": "Long convex lateral border of the stomach, attachment for the greater omentum.", "position": { "x": -0.6, "y": -0.2, "z": 0.7 }, "color": "#f43f5e" },
+        { "id": "lesser_curvature", "name": "Lesser Curvature", "description": "Short concave medial border, attachment for the lesser omentum.", "position": { "x": 0.3, "y": 0.5, "z": 0.2 }, "color": "#0ea5e9" },
+        { "id": "rugae", "name": "Rugae", "description": "Internal mucosal folds that allow the stomach to expand when filled with food.", "position": { "x": 0.0, "y": 0.3, "z": 0.8 }, "color": "#d946ef" },
+        { "id": "gastric_glands", "name": "Gastric Glands", "description": "Produce gastric acid (pH 1.5-3.5), pepsinogen, mucus, and intrinsic factor.", "position": { "x": -0.4, "y": 0.4, "z": 0.6 }, "color": "#22c55e" },
+        { "id": "esophagus", "name": "Lower Esophagus", "description": "Muscular tube that connects the pharynx to the stomach via peristalsis.", "position": { "x": -0.1, "y": 1.3, "z": -0.1 }, "color": "#94a3b8" }
       ]
     },
     {
@@ -95,11 +134,18 @@
       "keywords": ["eye", "retina", "cornea", "iris", "pupil", "optic", "lens", "vision"],
       "thumbnail": "eye_thumb.png",
       "features": [
-        { "id": "cornea", "name": "Cornea", "description": "Transparent front surface that refracts light.", "position": { "x": 0.0, "y": 0.0, "z": 1.0 }, "color": "#60a5fa" },
-        { "id": "iris", "name": "Iris", "description": "Colored part that controls pupil size and light entry.", "position": { "x": 0.0, "y": 0.0, "z": 0.8 }, "color": "#22c55e" },
-        { "id": "lens", "name": "Lens", "description": "Focuses light onto the retina.", "position": { "x": 0.0, "y": 0.0, "z": 0.4 }, "color": "#f59e0b" },
-        { "id": "retina", "name": "Retina", "description": "Light-sensitive layer that converts images to nerve signals.", "position": { "x": 0.0, "y": 0.0, "z": -0.8 }, "color": "#ef4444" },
-        { "id": "optic_nerve", "name": "Optic Nerve", "description": "Transmits visual information to the brain.", "position": { "x": 0.0, "y": -0.3, "z": -1.1 }, "color": "#8b5cf6" }
+        { "id": "cornea", "name": "Cornea", "description": "Transparent avascular dome that performs ~70% of the eye's total refractive power.", "position": { "x": 0.0, "y": 0.0, "z": 1.0 }, "color": "#60a5fa" },
+        { "id": "iris", "name": "Iris", "description": "Colored muscular diaphragm that controls pupil size and regulates light entry.", "position": { "x": 0.0, "y": 0.0, "z": 0.8 }, "color": "#22c55e" },
+        { "id": "pupil", "name": "Pupil", "description": "Central aperture in the iris, dilates in dim light and constricts in bright light.", "position": { "x": 0.0, "y": 0.0, "z": 0.85 }, "color": "#171717" },
+        { "id": "lens", "name": "Crystalline Lens", "description": "Biconvex transparent structure that focuses light onto the retina via accommodation.", "position": { "x": 0.0, "y": 0.0, "z": 0.4 }, "color": "#f59e0b" },
+        { "id": "retina", "name": "Retina", "description": "Light-sensitive neural layer with ~120M rods and ~6M cones converting light to nerve signals.", "position": { "x": 0.0, "y": 0.0, "z": -0.8 }, "color": "#ef4444" },
+        { "id": "optic_nerve", "name": "Optic Nerve", "description": "Bundle of ~1.2 million nerve fibers transmitting visual information to the brain.", "position": { "x": 0.0, "y": -0.3, "z": -1.1 }, "color": "#8b5cf6" },
+        { "id": "sclera", "name": "Sclera", "description": "Tough white outer coat that maintains eye shape and protects internal structures.", "position": { "x": 0.6, "y": 0.5, "z": 0.0 }, "color": "#f5f5f5" },
+        { "id": "vitreous", "name": "Vitreous Body", "description": "Gel-like substance filling the posterior chamber, maintains eye shape and optical clarity.", "position": { "x": 0.0, "y": 0.0, "z": -0.2 }, "color": "#bfdbfe" },
+        { "id": "ciliary_body", "name": "Ciliary Body", "description": "Produces aqueous humor and changes lens shape for focusing at different distances.", "position": { "x": 0.4, "y": 0.3, "z": 0.5 }, "color": "#a855f7" },
+        { "id": "macula", "name": "Macula & Fovea", "description": "Central region of retina responsible for sharp central vision and color perception.", "position": { "x": 0.0, "y": 0.1, "z": -0.9 }, "color": "#facc15" },
+        { "id": "conjunctiva", "name": "Conjunctiva", "description": "Thin mucous membrane covering the sclera and inner eyelids, provides lubrication.", "position": { "x": 0.5, "y": 0.6, "z": 0.3 }, "color": "#fda4af" },
+        { "id": "aqueous", "name": "Aqueous Humor", "description": "Clear fluid in the anterior chamber, maintains intraocular pressure and nourishes cornea.", "position": { "x": 0.0, "y": 0.0, "z": 0.6 }, "color": "#7dd3fc" }
       ]
     },
     {
@@ -110,10 +156,17 @@
       "keywords": ["ear", "cochlea", "eardrum", "tympanic", "auditory", "hearing"],
       "thumbnail": "ear_thumb.png",
       "features": [
-        { "id": "pinna", "name": "Pinna (Outer Ear)", "description": "Collects and funnels sound waves.", "position": { "x": -1.0, "y": 0.3, "z": 0.5 }, "color": "#f97316" },
-        { "id": "ear_canal", "name": "Ear Canal", "description": "Channels sound to the eardrum.", "position": { "x": -0.3, "y": 0.0, "z": 0.3 }, "color": "#eab308" },
-        { "id": "eardrum", "name": "Tympanic Membrane", "description": "Vibrates in response to sound waves.", "position": { "x": 0.2, "y": 0.0, "z": 0.0 }, "color": "#ef4444" },
-        { "id": "cochlea", "name": "Cochlea", "description": "Spiral-shaped organ that converts vibrations to nerve signals.", "position": { "x": 0.8, "y": -0.3, "z": -0.2 }, "color": "#8b5cf6" }
+        { "id": "pinna", "name": "Pinna (Auricle)", "description": "External ear cartilage that collects and funnels sound waves into the ear canal.", "position": { "x": -1.0, "y": 0.3, "z": 0.5 }, "color": "#f97316" },
+        { "id": "ear_canal", "name": "External Acoustic Meatus", "description": "S-shaped canal (~2.5cm) that channels sound waves to the tympanic membrane.", "position": { "x": -0.3, "y": 0.0, "z": 0.3 }, "color": "#eab308" },
+        { "id": "eardrum", "name": "Tympanic Membrane", "description": "Thin semitransparent membrane that vibrates in response to sound pressure waves.", "position": { "x": 0.2, "y": 0.0, "z": 0.0 }, "color": "#ef4444" },
+        { "id": "cochlea", "name": "Cochlea", "description": "Spiral-shaped organ with ~15,000 hair cells that converts mechanical vibrations to nerve signals.", "position": { "x": 0.8, "y": -0.3, "z": -0.2 }, "color": "#8b5cf6" },
+        { "id": "malleus", "name": "Malleus (Hammer)", "description": "Largest ossicle, attached to the tympanic membrane, receives and transmits vibrations.", "position": { "x": 0.3, "y": 0.1, "z": 0.1 }, "color": "#f5f5f5" },
+        { "id": "incus", "name": "Incus (Anvil)", "description": "Middle ossicle connecting the malleus to the stapes, amplifies sound vibrations.", "position": { "x": 0.45, "y": 0.15, "z": 0.0 }, "color": "#e2e8f0" },
+        { "id": "stapes", "name": "Stapes (Stirrup)", "description": "Smallest bone in the body, transmits vibrations to the oval window of the cochlea.", "position": { "x": 0.6, "y": 0.1, "z": -0.1 }, "color": "#d4d4d8" },
+        { "id": "vestibular", "name": "Vestibular System", "description": "Three semicircular canals that detect rotational movement and maintain balance.", "position": { "x": 0.7, "y": 0.4, "z": -0.3 }, "color": "#22c55e" },
+        { "id": "eustachian", "name": "Eustachian Tube", "description": "Connects middle ear to nasopharynx, equalizes air pressure across the tympanic membrane.", "position": { "x": 0.4, "y": -0.4, "z": 0.2 }, "color": "#0ea5e9" },
+        { "id": "auditory_nerve", "name": "Auditory Nerve", "description": "Cranial nerve VIII, transmits auditory and vestibular information to the brainstem.", "position": { "x": 1.0, "y": -0.1, "z": -0.4 }, "color": "#a855f7" },
+        { "id": "oval_window", "name": "Oval Window", "description": "Membrane-covered opening connecting the middle ear to the inner ear cochlea.", "position": { "x": 0.65, "y": -0.05, "z": -0.15 }, "color": "#fb923c" }
       ]
     },
     {
@@ -124,11 +177,18 @@
       "keywords": ["skeleton", "bone", "skull", "spine", "rib", "femur", "skeletal", "orthopedic"],
       "thumbnail": "skeleton_thumb.png",
       "features": [
-        { "id": "skull", "name": "Skull", "description": "Protects the brain and supports facial structures.", "position": { "x": 0.0, "y": 1.5, "z": 0.3 }, "color": "#f5f5f5" },
-        { "id": "spine", "name": "Vertebral Column", "description": "33 vertebrae protecting the spinal cord.", "position": { "x": 0.0, "y": 0.3, "z": -0.3 }, "color": "#d4d4d4" },
-        { "id": "ribcage", "name": "Rib Cage", "description": "12 pairs of ribs protecting heart and lungs.", "position": { "x": 0.0, "y": 0.5, "z": 0.5 }, "color": "#e5e5e5" },
-        { "id": "pelvis", "name": "Pelvis", "description": "Supports upper body and connects to lower limbs.", "position": { "x": 0.0, "y": -0.5, "z": 0.2 }, "color": "#d4d4d4" },
-        { "id": "femur", "name": "Femur", "description": "Longest and strongest bone in the body.", "position": { "x": 0.3, "y": -1.2, "z": 0.2 }, "color": "#fafafa" }
+        { "id": "skull", "name": "Skull (Cranium)", "description": "22 fused bones protecting the brain and supporting facial structures.", "position": { "x": 0.0, "y": 1.5, "z": 0.3 }, "color": "#f5f5f5" },
+        { "id": "spine", "name": "Vertebral Column", "description": "33 vertebrae (7 cervical, 12 thoracic, 5 lumbar, 5 sacral, 4 coccygeal) protecting the spinal cord.", "position": { "x": 0.0, "y": 0.3, "z": -0.3 }, "color": "#d4d4d4" },
+        { "id": "ribcage", "name": "Rib Cage", "description": "12 pairs of ribs forming a protective cage around the heart and lungs.", "position": { "x": 0.0, "y": 0.5, "z": 0.5 }, "color": "#e5e5e5" },
+        { "id": "pelvis", "name": "Pelvis", "description": "Basin-shaped structure supporting the upper body and connecting to lower limbs.", "position": { "x": 0.0, "y": -0.5, "z": 0.2 }, "color": "#d4d4d4" },
+        { "id": "femur", "name": "Femur", "description": "Longest and strongest bone, supports body weight during standing and walking.", "position": { "x": 0.3, "y": -1.2, "z": 0.2 }, "color": "#fafafa" },
+        { "id": "clavicle", "name": "Clavicle", "description": "S-shaped collarbone connecting the scapula to the sternum, most commonly fractured bone.", "position": { "x": 0.5, "y": 0.9, "z": 0.4 }, "color": "#e2e8f0" },
+        { "id": "scapula", "name": "Scapula", "description": "Triangular flat bone on the posterior thorax, provides attachment for arm muscles.", "position": { "x": 0.6, "y": 0.6, "z": -0.4 }, "color": "#cbd5e1" },
+        { "id": "humerus", "name": "Humerus", "description": "Upper arm bone, articulates with scapula at shoulder and radius/ulna at elbow.", "position": { "x": 0.8, "y": 0.3, "z": 0.2 }, "color": "#f5f5f5" },
+        { "id": "tibia", "name": "Tibia", "description": "Shinbone, second largest bone, bears most of the weight transmitted to the lower leg.", "position": { "x": 0.25, "y": -1.8, "z": 0.2 }, "color": "#e5e5e5" },
+        { "id": "sternum", "name": "Sternum", "description": "Flat bone in the center of the chest, connects to ribs and protects the heart.", "position": { "x": 0.0, "y": 0.6, "z": 0.6 }, "color": "#fafaf9" },
+        { "id": "mandible", "name": "Mandible", "description": "Largest and strongest facial bone, the only movable bone of the skull.", "position": { "x": 0.0, "y": 1.2, "z": 0.5 }, "color": "#d6d3d1" },
+        { "id": "patella", "name": "Patella", "description": "Kneecap, largest sesamoid bone, protects the knee joint and improves leverage.", "position": { "x": 0.3, "y": -1.5, "z": 0.4 }, "color": "#fafafa" }
       ]
     },
     {
@@ -139,10 +199,17 @@
       "keywords": ["tooth", "teeth", "dental", "molar", "enamel", "root", "crown"],
       "thumbnail": "tooth_thumb.png",
       "features": [
-        { "id": "enamel", "name": "Enamel", "description": "Hardest substance in the body, protects the crown.", "position": { "x": 0.0, "y": 0.6, "z": 0.4 }, "color": "#f5f5f5" },
-        { "id": "dentin", "name": "Dentin", "description": "Makes up bulk of tooth structure beneath enamel.", "position": { "x": 0.0, "y": 0.2, "z": 0.3 }, "color": "#fde68a" },
-        { "id": "pulp", "name": "Pulp Chamber", "description": "Contains nerves and blood vessels.", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "color": "#ef4444" },
-        { "id": "root", "name": "Root", "description": "Anchors tooth in jawbone.", "position": { "x": 0.0, "y": -0.8, "z": 0.0 }, "color": "#d4d4d4" }
+        { "id": "enamel", "name": "Enamel", "description": "Hardest substance in the human body (96% mineral), protects the crown from wear and decay.", "position": { "x": 0.0, "y": 0.6, "z": 0.4 }, "color": "#f5f5f5" },
+        { "id": "dentin", "name": "Dentin", "description": "Makes up the bulk of tooth structure, harder than bone but softer than enamel, contains tubules.", "position": { "x": 0.0, "y": 0.2, "z": 0.3 }, "color": "#fde68a" },
+        { "id": "pulp", "name": "Pulp Chamber", "description": "Central soft tissue containing nerves, blood vessels, and connective tissue that nourish the tooth.", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "color": "#ef4444" },
+        { "id": "root", "name": "Root", "description": "Anchors the tooth in the alveolar bone of the jaw, covered by cementum.", "position": { "x": 0.0, "y": -0.8, "z": 0.0 }, "color": "#d4d4d4" },
+        { "id": "cementum", "name": "Cementum", "description": "Thin calcified layer covering the root, provides attachment point for periodontal ligament.", "position": { "x": 0.15, "y": -0.6, "z": 0.15 }, "color": "#fbbf24" },
+        { "id": "pdl", "name": "Periodontal Ligament", "description": "Connective tissue fibers that suspend the tooth in its socket, act as shock absorbers.", "position": { "x": 0.25, "y": -0.4, "z": 0.2 }, "color": "#f472b6" },
+        { "id": "gingiva", "name": "Gingiva (Gums)", "description": "Soft mucosal tissue covering the alveolar bone, forms a seal around each tooth.", "position": { "x": 0.3, "y": 0.1, "z": 0.4 }, "color": "#fb7185" },
+        { "id": "root_canal", "name": "Root Canal", "description": "Narrow channel within the root containing pulp tissue extending to the apex.", "position": { "x": 0.0, "y": -0.5, "z": 0.0 }, "color": "#dc2626" },
+        { "id": "crown", "name": "Anatomical Crown", "description": "Visible part of the tooth above the gumline, covered by enamel.", "position": { "x": 0.0, "y": 0.8, "z": 0.3 }, "color": "#fefce8" },
+        { "id": "apex", "name": "Root Apex", "description": "Tip of the root where blood vessels and nerves enter through the apical foramen.", "position": { "x": 0.0, "y": -1.0, "z": 0.0 }, "color": "#a855f7" },
+        { "id": "alveolar_bone", "name": "Alveolar Bone", "description": "Specialized bone of the jaw that forms the sockets holding each tooth.", "position": { "x": 0.3, "y": -0.3, "z": 0.3 }, "color": "#94a3b8" }
       ]
     }
   ]

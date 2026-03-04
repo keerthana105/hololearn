@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, Html, ContactShadows, useGLTF, Center } from "@react-three/drei";
 import * as THREE from "three";
-import { Grid, Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Maximize2, Info, Box } from "lucide-react";
+import { Grid, Eye, EyeOff, RotateCcw, ZoomIn, ZoomOut, Info, Box, ChevronDown } from "lucide-react";
 
 interface Feature {
   id: string;
@@ -26,34 +26,35 @@ interface ModelViewerProps {
 
 // =============== GLB MODEL LOADER ===============
 
-function GLBModel({ url, wireframe }: { url: string; wireframe: boolean }) {
+function GLBModel({ url, wireframe, onLoaded }: { url: string; wireframe: boolean; onLoaded?: (scene: THREE.Group) => void }) {
   const { scene } = useGLTF(url);
-  const modelRef = useRef<THREE.Group>(null);
+  const clonedScene = useRef<THREE.Group | null>(null);
 
   useEffect(() => {
-    if (scene) {
-      // Apply wireframe and PBR settings to all meshes
-      scene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          if (child.material) {
-            const materials = Array.isArray(child.material) ? child.material : [child.material];
-            materials.forEach((mat) => {
-              mat.wireframe = wireframe;
-              // Enhance PBR if material is standard/physical
-              if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-                mat.envMapIntensity = 1.5;
-                mat.needsUpdate = true;
-              }
-            });
-          }
+    const clone = scene.clone(true);
+    clonedScene.current = clone;
+    
+    clone.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        if (child.material) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          materials.forEach((mat) => {
+            mat.wireframe = wireframe;
+            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
+              mat.envMapIntensity = 1.8;
+              mat.needsUpdate = true;
+            }
+          });
         }
-      });
-    }
-  }, [scene, wireframe]);
+      }
+    });
+
+    if (onLoaded) onLoaded(clone);
+  }, [scene, wireframe, onLoaded]);
 
   return (
     <Center>
-      <primitive ref={modelRef} object={scene.clone()} scale={1.5} />
+      <primitive object={clonedScene.current || scene.clone()} />
     </Center>
   );
 }
@@ -61,8 +62,6 @@ function GLBModel({ url, wireframe }: { url: string; wireframe: boolean }) {
 // =============== FALLBACK PARAMETRIC MODEL ===============
 
 function FallbackModel({ shapeType, wireframe }: { shapeType: string; wireframe: boolean }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  
   const geometry = (() => {
     switch (shapeType) {
       case 'heart': return new THREE.SphereGeometry(1.2, 64, 64);
@@ -94,7 +93,7 @@ function FallbackModel({ shapeType, wireframe }: { shapeType: string; wireframe:
   })();
 
   return (
-    <mesh ref={meshRef} geometry={geometry}>
+    <mesh geometry={geometry}>
       <meshPhysicalMaterial
         color={color}
         roughness={0.4}
@@ -114,8 +113,8 @@ function FloatingGroup({ children }: { children: React.ReactNode }) {
   const groupRef = useRef<THREE.Group>(null);
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.8) * 0.1;
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5) * 0.015;
+      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.08;
+      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.4) * 0.01;
     }
   });
   return <group ref={groupRef}>{children}</group>;
@@ -123,68 +122,130 @@ function FloatingGroup({ children }: { children: React.ReactNode }) {
 
 // =============== FEATURE HOTSPOT ===============
 
-function FeatureHotspot3D({ feature, isSelected, onSelect }: { feature: Feature; isSelected: boolean; onSelect: () => void }) {
+function FeatureHotspot3D({ feature, isSelected, onSelect, scaleFactor }: { feature: Feature; isSelected: boolean; onSelect: () => void; scaleFactor: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
   const position: [number, number, number] = [
-    feature.position.x,
-    feature.position.y,
-    feature.position.z ?? 0
+    feature.position.x * scaleFactor,
+    feature.position.y * scaleFactor,
+    (feature.position.z ?? 0) * scaleFactor
   ];
 
+  // Pulsing animation
   useFrame((state) => {
-    if (meshRef.current) meshRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 4) * 0.3);
+    if (meshRef.current) {
+      const pulse = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.25;
+      meshRef.current.scale.setScalar(pulse);
+    }
+    if (ringRef.current) {
+      const ringPulse = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.15;
+      ringRef.current.scale.setScalar(ringPulse);
+      ringRef.current.rotation.z = state.clock.elapsedTime * 0.5;
+    }
   });
+
+  const dotSize = 0.06 * scaleFactor;
+  const ringInner = 0.08 * scaleFactor;
+  const ringOuter = 0.12 * scaleFactor;
 
   return (
     <group position={position}>
-      <mesh ref={meshRef} onClick={(e) => { e.stopPropagation(); onSelect(); }}
+      {/* Core dot */}
+      <mesh
+        ref={meshRef}
+        onClick={(e) => { e.stopPropagation(); onSelect(); }}
         onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
-        onPointerOut={() => { document.body.style.cursor = 'auto'; }}>
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshStandardMaterial color={feature.color || "#00d4ff"} emissive={feature.color || "#00d4ff"} emissiveIntensity={isSelected ? 3 : 1.5} metalness={0.5} roughness={0.2} transparent opacity={0.9} />
+        onPointerOut={() => { document.body.style.cursor = 'auto'; }}
+      >
+        <sphereGeometry args={[dotSize, 16, 16]} />
+        <meshStandardMaterial
+          color={feature.color || "#00d4ff"}
+          emissive={feature.color || "#00d4ff"}
+          emissiveIntensity={isSelected ? 4 : 2}
+          metalness={0.5}
+          roughness={0.2}
+          transparent
+          opacity={0.95}
+        />
       </mesh>
       {/* Outer ring */}
-      <mesh>
-        <ringGeometry args={[0.1, 0.14, 32]} />
-        <meshBasicMaterial color={feature.color || "#00d4ff"} transparent opacity={isSelected ? 0.8 : 0.4} side={THREE.DoubleSide} />
+      <mesh ref={ringRef}>
+        <ringGeometry args={[ringInner, ringOuter, 32]} />
+        <meshBasicMaterial
+          color={feature.color || "#00d4ff"}
+          transparent
+          opacity={isSelected ? 0.7 : 0.35}
+          side={THREE.DoubleSide}
+        />
       </mesh>
-      {/* Label */}
+      {/* Connecting line from dot outward */}
       {isSelected && (
-        <Html position={[0.2, 0.15, 0]} distanceFactor={5} style={{ pointerEvents: 'none' }}>
-          <div className="bg-background/95 backdrop-blur-md border border-primary/30 rounded-lg p-3 shadow-xl min-w-[200px] max-w-[280px]">
-            <h4 className="text-sm font-bold text-primary mb-1">{feature.name}</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">{feature.description}</p>
-          </div>
-        </Html>
+        <>
+          <line>
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                count={2}
+                array={new Float32Array([0, 0, 0, 0.3 * scaleFactor, 0.2 * scaleFactor, 0])}
+                itemSize={3}
+              />
+            </bufferGeometry>
+            <lineBasicMaterial color={feature.color || "#00d4ff"} transparent opacity={0.6} />
+          </line>
+          <Html
+            position={[0.35 * scaleFactor, 0.25 * scaleFactor, 0]}
+            distanceFactor={6}
+            style={{ pointerEvents: 'none' }}
+            zIndexRange={[100, 0]}
+          >
+            <div className="bg-background/95 backdrop-blur-lg border border-primary/40 rounded-xl p-3 shadow-2xl min-w-[220px] max-w-[300px] animate-fade-in">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: feature.color }} />
+                <h4 className="text-sm font-bold text-primary">{feature.name}</h4>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{feature.description}</p>
+            </div>
+          </Html>
+        </>
       )}
     </group>
   );
 }
 
-// =============== AUTO-SCALE ===============
+// =============== AUTO-SCALE + FIT ===============
 
-function AutoScale({ children }: { children: React.ReactNode }) {
+function AutoScaleAndFit({ children, modelId }: { children: React.ReactNode; modelId?: string }) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
   useEffect(() => {
-    if (groupRef.current) {
-      const box = new THREE.Box3().setFromObject(groupRef.current);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const targetSize = 3;
-      if (maxDim > 0) {
-        const scale = targetSize / maxDim;
-        groupRef.current.scale.setScalar(scale);
-        groupRef.current.position.sub(center.multiplyScalar(scale));
+    // Small delay to let the model load
+    const timeout = setTimeout(() => {
+      if (groupRef.current) {
+        const box = new THREE.Box3().setFromObject(groupRef.current);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        if (maxDim > 0) {
+          const targetSize = 2.8;
+          const scale = targetSize / maxDim;
+          groupRef.current.scale.setScalar(scale);
+          // Re-center after scaling
+          const newBox = new THREE.Box3().setFromObject(groupRef.current);
+          const newCenter = newBox.getCenter(new THREE.Vector3());
+          groupRef.current.position.sub(newCenter);
+        }
+
+        if (camera instanceof THREE.PerspectiveCamera) {
+          camera.position.set(0, 0.5, 4.5);
+          camera.lookAt(0, 0, 0);
+          camera.updateProjectionMatrix();
+        }
       }
-      if (camera instanceof THREE.PerspectiveCamera) {
-        camera.position.set(0, 1, 5);
-        camera.lookAt(0, 0, 0);
-      }
-    }
-  }, [children, camera]);
+    }, 100);
+    return () => clearTimeout(timeout);
+  }, [modelId, camera]);
 
   return <group ref={groupRef}>{children}</group>;
 }
@@ -211,19 +272,20 @@ export default function ModelViewer({ modelData, glbUrl, features: externalFeatu
   const [autoRotate, setAutoRotate] = useState(true);
   const [glbAvailable, setGlbAvailable] = useState(false);
   const [resolvedGlbUrl, setResolvedGlbUrl] = useState<string | null>(null);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const controlsRef = useRef<any>(null);
 
   const modelId = modelData?.matchedModelId;
   const features = externalFeatures || modelData?.features || [];
   const objectType = modelData?.objectType || "3D Model";
 
-  // Check if GLB file exists in public/models/
+  // Check if GLB file exists
   useEffect(() => {
     if (glbUrl) {
       setResolvedGlbUrl(glbUrl);
       setGlbAvailable(true);
       return;
     }
-
     if (modelId && modelId !== "unknown") {
       const url = `/models/${modelId}.glb`;
       fetch(url, { method: 'HEAD' })
@@ -243,8 +305,21 @@ export default function ModelViewer({ modelData, glbUrl, features: externalFeatu
     }
   }, [modelId, glbUrl]);
 
-  // Estimate polygon count
-  const polyCount = glbAvailable ? "~50K+" : "~8K";
+  const handleZoom = (direction: 'in' | 'out') => {
+    if (controlsRef.current) {
+      const controls = controlsRef.current;
+      const factor = direction === 'in' ? 0.8 : 1.25;
+      const camera = controls.object;
+      camera.position.multiplyScalar(factor);
+      controls.update();
+    }
+  };
+
+  const handleReset = () => {
+    if (controlsRef.current) {
+      controlsRef.current.reset();
+    }
+  };
 
   if (!modelData) {
     return (
@@ -257,30 +332,39 @@ export default function ModelViewer({ modelData, glbUrl, features: externalFeatu
     );
   }
 
+  const featureScaleFactor = glbAvailable ? 1.2 : 1.0;
+
   return (
     <div className="w-full h-full rounded-2xl overflow-hidden card-glass gradient-border relative">
       {/* Toolbar */}
-      <div className="absolute top-3 left-3 z-10 flex gap-1.5 bg-background/80 backdrop-blur-md rounded-lg p-1 border border-border/50">
+      <div className="absolute top-3 left-3 z-10 flex gap-1 bg-background/80 backdrop-blur-md rounded-lg p-1 border border-border/50">
         <button
           onClick={() => setWireframe(!wireframe)}
           className={`p-2 rounded-md transition-colors ${wireframe ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
-          title="Toggle wireframe"
+          title="Wireframe"
         >
           <Grid className="w-4 h-4" />
         </button>
         <button
           onClick={() => setShowFeatures(!showFeatures)}
           className={`p-2 rounded-md transition-colors ${showFeatures ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
-          title="Toggle feature hotspots"
+          title="Hotspots"
         >
           {showFeatures ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </button>
         <button
           onClick={() => setAutoRotate(!autoRotate)}
           className={`p-2 rounded-md transition-colors ${autoRotate ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
-          title="Toggle auto-rotate"
+          title="Auto-rotate"
         >
           <RotateCcw className="w-4 h-4" />
+        </button>
+        <div className="w-px bg-border/50 mx-0.5" />
+        <button onClick={() => handleZoom('in')} className="p-2 rounded-md hover:bg-muted text-muted-foreground" title="Zoom In">
+          <ZoomIn className="w-4 h-4" />
+        </button>
+        <button onClick={() => handleZoom('out')} className="p-2 rounded-md hover:bg-muted text-muted-foreground" title="Zoom Out">
+          <ZoomOut className="w-4 h-4" />
         </button>
       </div>
 
@@ -289,50 +373,69 @@ export default function ModelViewer({ modelData, glbUrl, features: externalFeatu
         <div className="flex items-center gap-2 text-xs">
           <Info className="w-3 h-3 text-primary" />
           <span className="text-muted-foreground">
-            {objectType} • {polyCount} polys
+            {objectType}
             {glbAvailable && <span className="text-green-500 ml-1">• GLB</span>}
           </span>
         </div>
       </div>
 
-      {/* Feature list */}
+      {/* Feature dropdown panel */}
       {showFeatures && features.length > 0 && (
-        <div className="absolute bottom-3 left-3 z-10 bg-background/80 backdrop-blur-md rounded-lg p-2 border border-border/50 max-w-[200px]">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Features</p>
-          <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
-            {features.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setSelectedFeature(selectedFeature === f.id ? null : f.id)}
-                className={`w-full text-left flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
-                  selectedFeature === f.id ? 'bg-primary/20 text-primary' : 'hover:bg-muted/50 text-muted-foreground'
-                }`}
-              >
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: f.color }} />
-                <span className="truncate">{f.name}</span>
-              </button>
-            ))}
-          </div>
+        <div className="absolute bottom-3 left-3 z-10 bg-background/90 backdrop-blur-md rounded-lg border border-border/50 max-w-[220px]">
+          <button
+            onClick={() => setFeaturesOpen(!featuresOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-primary transition-colors"
+          >
+            <span>Features ({features.length})</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${featuresOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {featuresOpen && (
+            <div className="px-1 pb-1 space-y-0.5 max-h-[250px] overflow-y-auto scrollbar-thin">
+              {features.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setSelectedFeature(selectedFeature === f.id ? null : f.id)}
+                  className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all ${
+                    selectedFeature === f.id
+                      ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
+                      : 'hover:bg-muted/50 text-muted-foreground'
+                  }`}
+                >
+                  <div
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-white/20"
+                    style={{ backgroundColor: f.color }}
+                  />
+                  <span className="truncate">{f.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Three.js Canvas */}
       <Canvas
-        camera={{ position: [0, 1, 5], fov: 45 }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        camera={{ position: [0, 0.5, 4.5], fov: 42, near: 0.1, far: 100 }}
+        gl={{
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.3,
+          pixelRatio: Math.min(window.devicePixelRatio, 2),
+        }}
         shadows
         onClick={() => setSelectedFeature(null)}
       >
-        <ambientLight intensity={0.3} />
-        <directionalLight position={[5, 5, 5]} intensity={1} castShadow shadow-mapSize={[2048, 2048]} />
-        <directionalLight position={[-3, 3, -3]} intensity={0.4} />
-        <spotLight position={[0, 8, 0]} intensity={0.5} angle={0.5} penumbra={1} />
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[5, 5, 5]} intensity={1.2} castShadow shadow-mapSize={[2048, 2048]} />
+        <directionalLight position={[-3, 3, -3]} intensity={0.5} />
+        <spotLight position={[0, 8, 0]} intensity={0.6} angle={0.5} penumbra={1} />
+        <pointLight position={[0, -3, 3]} intensity={0.3} color="#88ccff" />
 
         <Environment preset="studio" />
 
         <Suspense fallback={<LoadingFallback />}>
           <FloatingGroup>
-            <AutoScale>
+            <AutoScaleAndFit modelId={modelId}>
               {glbAvailable && resolvedGlbUrl ? (
                 <GLBModel url={resolvedGlbUrl} wireframe={wireframe} />
               ) : (
@@ -346,24 +449,27 @@ export default function ModelViewer({ modelData, glbUrl, features: externalFeatu
                   feature={feature}
                   isSelected={selectedFeature === feature.id}
                   onSelect={() => setSelectedFeature(selectedFeature === feature.id ? null : feature.id)}
+                  scaleFactor={featureScaleFactor}
                 />
               ))}
-            </AutoScale>
+            </AutoScaleAndFit>
           </FloatingGroup>
         </Suspense>
 
-        <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={10} blur={2.5} far={4} />
+        <ContactShadows position={[0, -1.8, 0]} opacity={0.5} scale={8} blur={2} far={4} />
 
         <OrbitControls
+          ref={controlsRef}
           enableDamping
-          dampingFactor={0.05}
-          minDistance={2}
-          maxDistance={12}
+          dampingFactor={0.08}
+          minDistance={1.5}
+          maxDistance={15}
           autoRotate={autoRotate}
-          autoRotateSpeed={1.5}
+          autoRotateSpeed={1.2}
           enablePan
-          maxPolarAngle={Math.PI * 0.85}
-          minPolarAngle={Math.PI * 0.15}
+          maxPolarAngle={Math.PI * 0.88}
+          minPolarAngle={Math.PI * 0.12}
+          target={[0, 0, 0]}
         />
       </Canvas>
     </div>
