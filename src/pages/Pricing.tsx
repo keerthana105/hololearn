@@ -94,10 +94,22 @@ function PaymentDialog({ open, onOpenChange, planName, amount }: { open: boolean
   const { toast } = useToast();
   const upiLink = `upi://pay?pa=${UPI_ID}&pn=HoloLearn&am=${amount}&cu=INR&tn=${planName}%20Subscription`;
   const qrValue = `upi://pay?pa=${UPI_ID}&pn=HoloLearn&am=${amount}&cu=INR&tn=${planName}%20Subscription`;
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
   const copyUPI = () => {
     navigator.clipboard.writeText(UPI_ID);
     toast({ title: "UPI ID Copied!", description: UPI_ID });
+  };
+
+  const handleUPIClick = () => {
+    if (isMobile) {
+      window.location.href = upiLink;
+    } else {
+      toast({
+        title: "📱 Use your phone",
+        description: "Scan the QR code below with GPay or any UPI app, or copy the UPI ID to pay manually.",
+      });
+    }
   };
 
   return (
@@ -118,20 +130,20 @@ function PaymentDialog({ open, onOpenChange, planName, amount }: { open: boolean
             </div>
           </div>
 
-          {/* GPay / UPI Deep Link */}
-          <a
-            href={upiLink}
-            className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+          {/* GPay / UPI Button */}
+          <button
+            onClick={handleUPIClick}
+            className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
           >
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Smartphone className="w-6 h-6 text-primary" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 text-left">
               <p className="font-semibold">Pay with GPay / UPI App</p>
-              <p className="text-sm text-muted-foreground">Opens your UPI app directly</p>
+              <p className="text-sm text-muted-foreground">{isMobile ? "Opens your UPI app directly" : "Available on mobile only"}</p>
             </div>
             <ArrowRight className="w-5 h-5 text-muted-foreground" />
-          </a>
+          </button>
 
           {/* QR Code */}
           <div className="text-center space-y-3">
