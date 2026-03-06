@@ -121,7 +121,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_login_count: { Args: { uid: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

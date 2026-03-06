@@ -30,16 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(async () => {
             try {
-              await supabase.from('profiles').update({
+              await (supabase.from('profiles') as any).update({
                 last_login_at: new Date().toISOString(),
                 login_provider: session.user.app_metadata?.provider || 'email',
-                login_count: undefined, // will use RPC below
               }).eq('user_id', session.user.id);
-              
-              // Increment login count
-              await supabase.rpc('increment_login_count' as any, { uid: session.user.id });
             } catch (e) {
-              // Non-critical, don't block auth flow
               console.log('Login tracking skipped');
             }
           }, 0);
