@@ -51,7 +51,24 @@ export default function Contact() {
         message: result.data.message,
       });
       if (error) throw error;
-      toast({ title: "Message sent!", description: "We'll get back to you soon." });
+      
+      // Send real-time email notification
+      try {
+        const { data: emailData } = await supabase.functions.invoke("send-contact-email", {
+          body: {
+            name: result.data.name,
+            email: result.data.email,
+            subject: result.data.subject || "General Inquiry",
+            message: result.data.message,
+          },
+        });
+        toast({ 
+          title: "Message sent! ✉️", 
+          description: emailData?.autoReply ? "We've sent you a confirmation email." : "We'll get back to you within 24 hours." 
+        });
+      } catch {
+        toast({ title: "Message sent!", description: "We'll get back to you soon." });
+      }
       setName(""); setEmail(""); setSubject(""); setMessage("");
     } catch {
       toast({ title: "Error", description: "Failed to send message. Please try again.", variant: "destructive" });

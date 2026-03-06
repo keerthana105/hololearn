@@ -21,10 +21,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Track login events
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(async () => {
+            try {
+              await (supabase.from('profiles') as any).update({
+                last_login_at: new Date().toISOString(),
+                login_provider: session.user.app_metadata?.provider || 'email',
+              }).eq('user_id', session.user.id);
+            } catch (e) {
+              console.log('Login tracking skipped');
+            }
+          }, 0);
+        }
       }
     );
 

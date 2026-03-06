@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff, Sparkles, ArrowRight, Box, Shield, Zap } from "lucide-react";
 import { z } from "zod";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -180,8 +181,29 @@ export default function Auth() {
               variant="outline"
               className="w-full mt-4 gap-2"
               onClick={async () => {
-                const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-                if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+                try {
+                  setLoading(true);
+                  const isCustomDomain = !window.location.hostname.includes("lovable.app") && !window.location.hostname.includes("lovableproject.com");
+                  
+                  if (isCustomDomain) {
+                    const { data, error } = await supabase.auth.signInWithOAuth({
+                      provider: "google",
+                      options: {
+                        redirectTo: `${window.location.origin}/dashboard`,
+                        skipBrowserRedirect: true,
+                      },
+                    });
+                    if (error) throw error;
+                    if (data?.url) window.location.href = data.url;
+                  } else {
+                    const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+                    if (error) throw error;
+                  }
+                } catch (err: any) {
+                  toast({ title: "Error", description: err.message || "Google sign-in failed", variant: "destructive" });
+                } finally {
+                  setLoading(false);
+                }
               }}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
