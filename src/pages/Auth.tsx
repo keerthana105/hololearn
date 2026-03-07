@@ -66,7 +66,7 @@ export default function Auth() {
           navigate("/dashboard");
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, age, profession);
         if (error) {
           toast({ title: error.message.includes("already registered") ? "Account Exists" : "Error", description: error.message, variant: "destructive" });
         } else {
