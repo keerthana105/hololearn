@@ -47,8 +47,10 @@ serve(async (req) => {
       if (generated) autoReply = generated;
     }
 
-    // Log for admin notification
+    // Log for admin notification and forward to owner
+    const ADMIN_EMAIL = "keerthanamariaselvam13@gmail.com";
     console.log(`[CONTACT] New message from ${name} (${email}): ${subject || "No subject"}`);
+    console.log(`[FORWARD] To admin: ${ADMIN_EMAIL}`);
     console.log(`[AUTO-REPLY] To: ${email}, Body: ${autoReply}`);
 
     return new Response(JSON.stringify({

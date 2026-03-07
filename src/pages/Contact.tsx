@@ -137,7 +137,7 @@ export default function Contact() {
                   <Mail className="w-5 h-5 text-primary mt-0.5" />
                   <div>
                     <p className="font-medium">Email</p>
-                    <p className="text-muted-foreground text-sm">support@hololearn.app</p>
+                    <a href="mailto:keerthanamariaselvam13@gmail.com" className="text-muted-foreground text-sm hover:text-primary transition-colors">keerthanamariaselvam13@gmail.com</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
