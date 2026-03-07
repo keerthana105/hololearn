@@ -14,6 +14,8 @@ const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   fullName: z.string().optional(),
+  age: z.string().optional(),
+  profession: z.string().optional(),
 });
 
 export default function Auth() {
@@ -21,6 +23,8 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [age, setAge] = useState("");
+  const [profession, setProfession] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,7 +66,7 @@ export default function Auth() {
           navigate("/dashboard");
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, age, profession);
         if (error) {
           toast({ title: error.message.includes("already registered") ? "Account Exists" : "Error", description: error.message, variant: "destructive" });
         } else {
@@ -142,6 +146,18 @@ export default function Auth() {
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-muted-foreground text-sm">Full Name</Label>
                   <Input id="fullName" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-input border-border focus:border-primary" />
+                </div>
+              )}
+              {!isLogin && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="age" className="text-muted-foreground text-sm">Age</Label>
+                    <Input id="age" type="number" placeholder="25" min="10" max="120" value={age} onChange={(e) => setAge(e.target.value)} className="bg-input border-border focus:border-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profession" className="text-muted-foreground text-sm">Profession</Label>
+                    <Input id="profession" placeholder="Student, Teacher..." value={profession} onChange={(e) => setProfession(e.target.value)} className="bg-input border-border focus:border-primary" />
+                  </div>
                 </div>
               )}
               <div className="space-y-2">
