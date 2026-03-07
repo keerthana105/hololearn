@@ -148,6 +148,18 @@ export default function Auth() {
                   <Input id="fullName" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-input border-border focus:border-primary" />
                 </div>
               )}
+              {!isLogin && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="age" className="text-muted-foreground text-sm">Age</Label>
+                    <Input id="age" type="number" placeholder="25" min="10" max="120" value={age} onChange={(e) => setAge(e.target.value)} className="bg-input border-border focus:border-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profession" className="text-muted-foreground text-sm">Profession</Label>
+                    <Input id="profession" placeholder="Student, Teacher..." value={profession} onChange={(e) => setProfession(e.target.value)} className="bg-input border-border focus:border-primary" />
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-muted-foreground text-sm">Email</Label>
                 <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-input border-border focus:border-primary" />
