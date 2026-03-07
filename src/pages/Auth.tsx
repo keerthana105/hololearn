@@ -14,6 +14,8 @@ const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   fullName: z.string().optional(),
+  age: z.string().optional(),
+  profession: z.string().optional(),
 });
 
 export default function Auth() {
